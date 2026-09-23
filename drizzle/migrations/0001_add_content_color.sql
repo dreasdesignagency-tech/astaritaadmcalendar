@@ -1,0 +1,2 @@
+ALTER TABLE public.contents ADD COLUMN IF NOT EXISTS color TEXT;
+COMMENT ON COLUMN public.contents.color IS 'Cor opcional escolhida para o card no calendário (hex). Quando nula, usa a cor do cliente.';

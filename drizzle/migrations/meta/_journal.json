@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790177322132,
+      "tag": "0000_add_owner_id_and_lock_down_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790178337570,
+      "tag": "0001_add_content_color",
+      "breakpoints": true
+    }
+  ]
+}
