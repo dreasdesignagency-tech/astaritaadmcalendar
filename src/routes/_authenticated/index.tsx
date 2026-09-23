@@ -12,10 +12,12 @@ import {
   FUNNEL_STAGES,
   MONTHS,
   WEEKDAYS,
+  contrastText,
   fetchClients,
   fetchContents,
   iso,
   monthGrid,
+  todaySaoPaulo,
   type Content,
 } from "@/lib/planner";
 
@@ -39,12 +41,13 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function CalendarPage() {
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(9); // Outubro
+  const today = todaySaoPaulo();
+  const [year, setYear] = useState(today.year);
+  const [month, setMonth] = useState(today.month);
   const [clientFilter, setClientFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Content | null>(null);
-  const [defaultDate, setDefaultDate] = useState(iso(2026, 9, 1));
+  const [defaultDate, setDefaultDate] = useState(iso(today.year, today.month, today.day));
 
   const clientsQuery = useQuery({ queryKey: ["clients"], queryFn: fetchClients });
   const clients = clientsQuery.data ?? [];
@@ -279,21 +282,28 @@ function ContentBlock({
   fallbackColor: string;
   onClick: () => void;
 }) {
+  const color = content.color ?? fallbackColor;
+  const textColor = contrastText(color);
   return (
     <Button
       type="button"
       variant="ghost"
       onClick={onClick}
-      style={{ borderLeftColor: content.color ?? fallbackColor }}
-      className="glass-lift h-auto w-full justify-start rounded-xl border border-border/70 border-l-4 bg-card/55 px-2 py-1.5 text-left hover:bg-card/80"
+      style={{ backgroundColor: color, color: textColor }}
+      className="glass-lift h-auto w-full justify-start rounded-xl px-2 py-1.5 text-left shadow-sm hover:brightness-105 hover:opacity-95"
     >
-      <span className="block truncate text-[10px] font-semibold uppercase tracking-wide opacity-80">
+      <span
+        className="block truncate text-[10px] font-semibold uppercase tracking-wide"
+        style={{ color: textColor, opacity: 0.85 }}
+      >
         {clientName}
       </span>
-      <span className="block truncate text-[11px] font-semibold text-foreground">
+      <span className="block truncate text-[11px] font-semibold" style={{ color: textColor }}>
         {content.title}
       </span>
-      <span className="block truncate text-[10px] uppercase opacity-70">{content.format}</span>
+      <span className="block truncate text-[10px] uppercase" style={{ color: textColor, opacity: 0.85 }}>
+        {content.format}
+      </span>
     </Button>
   );
 }

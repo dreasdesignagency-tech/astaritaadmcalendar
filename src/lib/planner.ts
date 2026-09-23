@@ -111,6 +111,35 @@ export function iso(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/** Data de hoje no fuso horário do Brasil (America/Sao_Paulo). */
+export function todaySaoPaulo(): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: get("year"), month: get("month") - 1, day: get("day") };
+}
+
+/** Escolhe texto claro ou escuro conforme o contraste com a cor de fundo. */
+export function contrastText(hex: string): string {
+  const clean = hex.replace("#", "");
+  const full =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean;
+  const r = parseInt(full.slice(0, 2), 16) || 0;
+  const g = parseInt(full.slice(2, 4), 16) || 0;
+  const b = parseInt(full.slice(4, 6), 16) || 0;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#1f2937" : "#ffffff";
+}
+
 /** Days of the grid, starting on Monday, with nulls for padding. */
 export function monthGrid(year: number, month: number): (number | null)[] {
   const first = new Date(Date.UTC(year, month, 1));
