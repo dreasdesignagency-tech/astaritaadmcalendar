@@ -145,7 +145,6 @@ function Layout({ children }: { children: React.ReactNode }) {
             hora.
           </p>
         </div>
-        <p className="text-xs text-primary-foreground/50">Uso interno.</p>
       </div>
 
       <div className="flex items-center justify-center px-4 py-10">
