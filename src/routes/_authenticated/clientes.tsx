@@ -92,6 +92,18 @@ function ClientsPage() {
     query.refetch();
   };
 
+  const remove = async (client: Client) => {
+    if (!confirm(`Apagar o cliente "${client.name}" e todos os seus conteúdos?`)) return;
+    await supabase.from("contents").delete().eq("client_id", client.id);
+    const { error } = await supabase.from("clients").delete().eq("id", client.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Cliente apagado");
+    query.refetch();
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -126,6 +138,9 @@ function ClientsPage() {
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => toggleActive(c)}>
                   {c.active ? "Arquivar" : "Reativar"}
+                </Button>
+                <Button variant="ghost" size="sm" className="ml-auto text-destructive" onClick={() => remove(c)}>
+                  Apagar
                 </Button>
               </div>
             </div>

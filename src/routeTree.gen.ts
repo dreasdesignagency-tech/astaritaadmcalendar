@@ -14,7 +14,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
-import { Route as ApiPublicTmpSeedRouteImport } from './routes/api/public/tmp-seed'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -40,25 +39,18 @@ const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicTmpSeedRoute = ApiPublicTmpSeedRouteImport.update({
-  id: '/api/public/tmp-seed',
-  path: '/api/public/tmp-seed',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/clientes': typeof AuthenticatedClientesRoute
-  '/api/public/tmp-seed': typeof ApiPublicTmpSeedRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/': typeof AuthenticatedIndexRoute
-  '/api/public/tmp-seed': typeof ApiPublicTmpSeedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -67,14 +59,12 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/api/public/tmp-seed': typeof ApiPublicTmpSeedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    '/' | '/auth' | '/reset-password' | '/clientes' | '/api/public/tmp-seed'
+  fullPaths: '/' | '/auth' | '/reset-password' | '/clientes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/reset-password' | '/clientes' | '/' | '/api/public/tmp-seed'
+  to: '/auth' | '/reset-password' | '/clientes' | '/'
   id:
     | '__root__'
     | '/_authenticated'
@@ -82,14 +72,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/clientes'
     | '/_authenticated/'
-    | '/api/public/tmp-seed'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ApiPublicTmpSeedRoute: typeof ApiPublicTmpSeedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -129,13 +117,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/tmp-seed': {
-      id: '/api/public/tmp-seed'
-      path: '/api/public/tmp-seed'
-      fullPath: '/api/public/tmp-seed'
-      preLoaderRoute: typeof ApiPublicTmpSeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -156,7 +137,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  ApiPublicTmpSeedRoute: ApiPublicTmpSeedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
