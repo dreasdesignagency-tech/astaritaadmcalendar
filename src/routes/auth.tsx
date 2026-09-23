@@ -27,17 +27,14 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "entrar" | "criar";
 
 function AuthPage() {
   const { ready, user } = useAuth();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState<Mode>("entrar");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,34 +45,13 @@ function AuthPage() {
     if (busy) return;
     setBusy(true);
     setNotice(null);
-
-    if (mode === "entrar") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setBusy(false);
-      if (error) {
-        setNotice(authErrorMessage(error));
-        return;
-      }
-      void navigate({ to: "/", replace: true });
-      return;
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-
     if (error) {
       setNotice(authErrorMessage(error));
       return;
     }
-    if (data.session) {
-      void navigate({ to: "/", replace: true });
-      return;
-    }
-    setSent(true);
+    void navigate({ to: "/", replace: true });
   };
 
   const recover = async () => {
@@ -95,50 +71,9 @@ function AuthPage() {
     toast.success("Se o e-mail existir, o link de recuperação chega em instantes.");
   };
 
-  if (sent) {
-    return (
-      <Layout>
-        <h1 className="text-lg font-semibold">Confirme seu e-mail</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Enviamos um link para <strong className="text-foreground">{email}</strong>. Clique nele
-          para ativar sua conta e então entre com a senha que você criou.
-        </p>
-        <Button
-          className="mt-5 w-full"
-          variant="outline"
-          onClick={() => {
-            setSent(false);
-            setMode("entrar");
-          }}
-        >
-          Voltar para a tela de entrada
-        </Button>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
-      <div className="flex gap-1 rounded-xl border border-border bg-muted p-1">
-        {(["entrar", "criar"] as const).map((m) => (
-          <Button
-            key={m}
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setMode(m);
-              setNotice(null);
-            }}
-            className={`flex-1 rounded-lg capitalize ${
-              mode === m ? "bg-card font-medium text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            {m === "entrar" ? "Entrar" : "Criar conta"}
-          </Button>
-        ))}
-      </div>
-
+      <h1 className="text-lg font-semibold">Entrar</h1>
       <form
         className="mt-4 space-y-3"
         onSubmit={(e) => {
@@ -163,7 +98,7 @@ function AuthPage() {
           <Input
             id="password"
             type="password"
-            autoComplete={mode === "entrar" ? "current-password" : "new-password"}
+            autoComplete="current-password"
             required
             minLength={6}
             value={password}
@@ -178,11 +113,11 @@ function AuthPage() {
         )}
 
         <Button type="submit" className="w-full" disabled={busy}>
-          {mode === "entrar" ? "Entrar" : "Criar minha conta"}
+          Entrar
         </Button>
       </form>
 
-      {mode === "entrar" && (
+      {(
         <Button
           type="button"
           variant="link"
