@@ -39,6 +39,11 @@ supabase --workdir inbox-db migration list     # local e remoto devem aparecer i
 
 `migration repair` só grava a linha no ledger. Não executa o SQL. **Isto ainda não foi feito.**
 
+Alternativa sem o CLI (verificado em 08/10/2026: a tabela `supabase_migrations.schema_migrations` não existe no projeto Inbox):
+aplicar a primeira migration nova (por exemplo `proposed/inbox_hardening.sql`) com `apply_migration` do conector, que cria o ledger,
+e em seguida registrar a baseline com um `insert` de metadados (`version = '20261008000000'`, `name = 'inbox_install'`).
+Isso não executa o SQL da baseline de novo. Depende de aprovação.
+
 ## Próximas mudanças de banco
 
 Cada alteração nova vira um arquivo novo em `supabase/migrations/` com timestamp posterior, nunca edição do instalado.
@@ -46,12 +51,7 @@ Aplique com `supabase --workdir inbox-db db push` somente depois da reconciliaç
 
 ## Tipos TypeScript reais
 
-`src/lib/inbox/` hoje fala com o banco sem tipos gerados (formatos em `src/lib/inbox/types.ts`).
-Quando houver sessão do CLI autorizada ao projeto Inbox:
-
-```bash
-npm run inbox:types
-```
-
-Isso grava `src/lib/inbox/database.types.ts`. Nunca sobrescreva `src/integrations/supabase/types.ts`: é do calendário
-e o schema do Inbox não tem `clients`/`contents`. **Pendente: depende dessa sessão do CLI.**
+`src/lib/inbox/database.types.ts` foi gerado do projeto Inbox real em 08/10/2026 e o cliente do Inbox já é tipado com ele.
+Para regerar: `npm run inbox:types` (precisa de sessão do CLI autorizada ao projeto) ou o gerador de tipos do conector.
+Nunca sobrescreva `src/integrations/supabase/types.ts`: é do calendário e o schema do Inbox não tem `clients`/`contents`.
+Os campos de status e papel vêm como `string` (o banco usa `check`, não enum); os tipos de união ficam em `src/lib/inbox/types.ts`.

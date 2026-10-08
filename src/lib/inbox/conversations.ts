@@ -1,5 +1,6 @@
 import { db } from "@/lib/inbox/api";
 import { InboxUserError } from "@/lib/inbox/contacts";
+import type { TablesUpdate } from "@/lib/inbox/database.types";
 import { reopenedStatus, statusAfterAssign } from "@/lib/inbox/status";
 import type { ConversationRow, ConversationStatus, MessageRow } from "@/lib/inbox/types";
 
@@ -24,7 +25,7 @@ export async function fetchMessages(conversationId: string): Promise<MessageRow[
  * Atualiza a conversa só se ninguém mexeu nela desde que a tela carregou (controle por updated_at).
  * Evita que duas pessoas sobrescrevam uma à outra sem perceber.
  */
-async function guardedUpdate(row: ConversationRow, patch: Record<string, unknown>) {
+async function guardedUpdate(row: ConversationRow, patch: TablesUpdate<"conversations">) {
   const { data, error } = await db
     .from("conversations")
     .update(patch)

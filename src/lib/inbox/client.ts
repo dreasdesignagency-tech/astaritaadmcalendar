@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import type { Database } from "@/lib/inbox/database.types";
 import { readInboxConfig, type InboxConfig } from "@/lib/inbox/config";
 
 /**
@@ -28,14 +29,16 @@ export class InboxNotConfiguredError extends Error {
   }
 }
 
-let client: SupabaseClient | undefined;
+export type InboxClient = SupabaseClient<Database>;
 
-export function getInboxClient(): SupabaseClient {
+let client: InboxClient | undefined;
+
+export function getInboxClient(): InboxClient {
   if (client) return client;
   const config = getInboxConfig();
   if (!config.ok) throw new InboxNotConfiguredError(config);
 
-  client = createClient(config.url, config.key, {
+  client = createClient<Database>(config.url, config.key, {
     auth: {
       storageKey: INBOX_STORAGE_KEY,
       storage: typeof window === "undefined" ? undefined : window.localStorage,
@@ -49,7 +52,7 @@ export function getInboxClient(): SupabaseClient {
 }
 
 /** Atalho para consultas: resolve o cliente só quando alguma consulta de fato roda. */
-export const db: SupabaseClient = new Proxy({} as SupabaseClient, {
+export const db: InboxClient = new Proxy({} as InboxClient, {
   get(_, prop, receiver) {
     return Reflect.get(getInboxClient(), prop, receiver);
   },
