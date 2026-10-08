@@ -42,3 +42,47 @@ Com duas contas de teste (perfil `member`, nomes "Teste A" e "Teste B"), credenc
 login, criar contato, conversa, atribuir, resolver, reabrir e **Realtime entre duas sessões**. Todo dado de teste leva o
 prefixo `[TESTE-CLAUDE]` e é apagado por mim ao final; depois você remove as duas contas de teste.
 Mensagens recebidas (que só o backend grava) já foram testadas localmente e não são simuladas no banco real.
+
+## 5. Plano de aplicação no banco real (AGUARDA CONFIRMAÇÃO FINAL)
+
+Ensaiado em Postgres local que espelha o real (gatilho `ensure_rls` já existente, baseline instalada): aplicar, ledger,
+auditoria, comportamento das políticas, **reversão** (estado idêntico ao de antes) e reaplicação. Nada disso foi executado no banco real.
+
+| Passo | Ferramenta | Comando | Reversão |
+|---|---|---|---|
+| A | `apply_migration` (name `inbox_hardening`) | conteúdo de `proposed/inbox_hardening.sql` (1 revoke, 2 `alter policy`, 8 `create index if not exists`), numa transação única: se algo falhar, nada é aplicado e o ledger não é criado | `proposed/inbox_hardening.revert.sql` |
+| B | `execute_sql` (leitura) | `select to_regclass('supabase_migrations.schema_migrations');` deve devolver o nome | nada a reverter |
+| C | `execute_sql` | `insert` de metadados da baseline (`proposed/ledger_baseline.sql`), `on conflict do nothing` | `delete from supabase_migrations.schema_migrations where version in ('20261008000000', '<versão do passo A>');` |
+| D | leitura | `list_migrations` (2 linhas), `audit-readonly.sql` (25/25), advisors (somem `rls_auto_enable`, `auth_rls_initplan` e `unindexed_foreign_keys`; os `unused_index` novos são esperados com banco vazio) | nada a reverter |
+| E | repositório | renomear `proposed/inbox_hardening.sql` para `supabase/migrations/<versão do passo A>_inbox_hardening.sql` | git |
+
+Sem a política de ledger do passo C o CLI ainda acharia que nada foi aplicado. Alternativa pelo CLI: `migration repair` (ver `README.md`).
+
+## 6. Revisão de RLS (banco real, 08/10/2026)
+Definições reais conferidas em `pg_policy`: as duas políticas reescritas são idênticas às do SQL instalado, só trocam `auth.uid()` por
+`(select auth.uid())`. Pontos que NÃO bloqueiam, para decidir depois (Fase 6):
+- Qualquer membro pode apagar contatos e conversas (`delete` liberado), e a exclusão apaga mensagens em cascata. A interface não oferece isso.
+- `created_by`/`updated_by` de `reminders`, `quick_replies`, `ai_suggestions` e `knowledge_base` não são forçados ao próprio usuário
+  (só `messages.sent_by` é). Afeta a confiabilidade de auditoria, não o acesso.
+- Eventos de DELETE do Realtime não passam pela RLS (carregam só as chaves primárias). O app só usa eventos para recarregar, e o
+  projeto não tem cadastro público.
+
+## 7. Autenticação de Andreas e Juline
+1. Painel > Authentication > Sign In / Providers (ou *Settings*): desligar *Allow new users to sign up*; manter só o provedor Email.
+2. Authentication > URL Configuration: *Site URL* = endereço do app; *Redirect URLs* inclui `<endereço>/inbox/definir-senha`.
+3. Authentication > Users > Add user > Create new user (Auto Confirm User), com as senhas definidas por cada pessoa. Sem e-mails automáticos.
+4. `sql/provision-profiles.sql` com os dois e-mails (cria só os perfis; aborta sem gravar se faltar usuário).
+5. Contas de teste (só para a Etapa B): duas contas descartáveis com perfil `member`, removidas por você depois.
+
+## 8. Testes reais: `scripts/inbox-real-check.mjs`
+Só chave publicável e contas de teste (nunca service role), sem imprimir chaves ou tokens.
+```bash
+# Etapa A, somente leitura (auth settings, sondagem anônima das 13 tabelas e dos RPCs, conexão do Realtime)
+VITE_INBOX_SUPABASE_URL=... VITE_INBOX_SUPABASE_PUBLISHABLE_KEY=... node scripts/inbox-real-check.mjs
+# Etapa B, com escrita, dados [TESTE-CLAUDE] apagados ao final. Só depois da aprovação e das contas de teste:
+INBOX_TEST_A_EMAIL=... INBOX_TEST_A_PASSWORD=... INBOX_TEST_B_EMAIL=... INBOX_TEST_B_PASSWORD=... node scripts/inbox-real-check.mjs --write
+node scripts/inbox-real-check.mjs --cleanup-only   # se uma execução for interrompida
+```
+A Etapa A recusa "negado" por qualquer motivo que não seja permissão (42501), para não dar falso verde com chave errada.
+Antes do hardening, a verificação de `rls_auto_enable()` reprova de propósito (é o alerta de segurança). Testado só no ambiente
+local (28/28, sem Realtime). **As verificações de Realtime do script nunca rodaram contra um servidor Realtime de verdade.**

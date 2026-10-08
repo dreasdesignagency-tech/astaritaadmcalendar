@@ -26,6 +26,7 @@ http.createServer((req, res) => {
     });
     return;
   }
+  if (req.url.startsWith('/auth/v1/settings')) return json(200, { disable_signup: true, external: { email: true, phone: false, google: false }, mailer_autoconfirm: false });
   if (req.url.startsWith('/auth/v1/logout')) { res.writeHead(204, cors); return res.end(); }
   if (req.url.startsWith('/auth/v1/user')) { // set password (simulado)
     let raw = ''; req.on('data', (c) => (raw += c)); req.on('end', () => json(200, { id: USERS['andreas@t'], email: 'andreas@t', received_password_field: 'password' in JSON.parse(raw || '{}') }));
