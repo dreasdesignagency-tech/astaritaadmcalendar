@@ -1,7 +1,8 @@
-import { Asterisk, Sparkles } from "lucide-react";
+import { Asterisk, Pencil, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AI_STATE } from "@/lib/inbox/api";
+import { formatPhone } from "@/lib/inbox/phone";
 import { CATEGORY_LABEL, type ConversationRow, type InboxProfile } from "@/lib/inbox/types";
 
 const AI_ACTIONS = [
@@ -27,9 +28,13 @@ function Field({ label, value }: { label: string; value: string | null | undefin
 export function DetailsPanel({
   conversation,
   team,
+  tags,
+  onEditContact,
 }: {
   conversation: ConversationRow | undefined;
   team: InboxProfile[];
+  tags: string[];
+  onEditContact: () => void;
 }) {
   const contact = conversation?.contact;
   const owner = team.find((p) => p.id === conversation?.assigned_to)?.full_name;
@@ -37,15 +42,23 @@ export function DetailsPanel({
   return (
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
       <section className="inbox-surface rounded-[2rem] p-5" aria-label="Informações do contato">
-        <h2 className="mb-3 font-display text-base font-semibold">Contato</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-base font-semibold">Contato</h2>
+          {contact && (
+            <Button variant="outline" size="sm" className="rounded-full" onClick={onEditContact}>
+              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
+            </Button>
+          )}
+        </div>
         {contact ? (
           <dl className="space-y-3">
             <Field label="Nome" value={contact.name} />
-            <Field label="Telefone" value={contact.phone} />
+            <Field label="Telefone" value={formatPhone(contact.phone)} />
             <Field label="Empresa" value={contact.company} />
             <Field label="Instagram" value={contact.instagram} />
             <Field label="Categoria" value={CATEGORY_LABEL[contact.category]} />
             <Field label="Responsável" value={owner} />
+            <Field label="Etiquetas" value={tags.join(", ")} />
             <Field label="Observações" value={contact.notes} />
           </dl>
         ) : (

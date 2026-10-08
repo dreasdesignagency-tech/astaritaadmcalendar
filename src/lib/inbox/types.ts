@@ -19,6 +19,7 @@ export type ConversationRow = {
   unread_count: number;
   last_message_at: string | null;
   last_message_preview: string | null;
+  updated_at: string;
   contact: {
     id: string;
     name: string;
@@ -27,7 +28,39 @@ export type ConversationRow = {
     instagram: string | null;
     category: ContactCategory;
     notes: string | null;
+    assigned_to: string | null;
   };
+};
+
+export type TagRow = { id: string; name: string; color: string };
+
+export type ContactRow = {
+  id: string;
+  name: string;
+  phone: string | null;
+  company: string | null;
+  instagram: string | null;
+  category: ContactCategory;
+  assigned_to: string | null;
+  notes: string | null;
+  created_at: string;
+  tags: TagRow[];
+  conversation: { id: string; status: ConversationStatus; last_message_at: string | null } | null;
+};
+
+export type MessageStatus = "received" | "pending" | "sent" | "delivered" | "read" | "failed";
+
+export type MessageRow = {
+  id: string;
+  conversation_id: string;
+  direction: "in" | "out";
+  type: "text" | "image" | "document" | "audio" | "video" | "sticker" | "template" | "unsupported";
+  body: string | null;
+  media_mime: string | null;
+  status: MessageStatus;
+  error_message: string | null;
+  sent_by: string | null;
+  created_at: string;
 };
 
 export type PipelineStage = {

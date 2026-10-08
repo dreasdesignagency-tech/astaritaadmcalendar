@@ -5,6 +5,7 @@ import { UserAvatar } from "@/components/inbox/UserAvatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { WHATSAPP_STATE } from "@/lib/inbox/api";
 import { useInboxProfile } from "@/lib/inbox/profile-context";
+import { useRealtimeState } from "@/lib/inbox/realtime";
 import { cn } from "@/lib/utils";
 
 const WHATSAPP_COPY = {
@@ -31,6 +32,24 @@ function WhatsAppStatus() {
         </span>
       </TooltipTrigger>
       <TooltipContent>{copy.hint}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Só aparece quando o tempo real caiu: a tela segue atualizando a cada 15s. */
+function RealtimeOffline() {
+  if (useRealtimeState() !== "offline") return null;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inbox-surface flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium text-muted-foreground">
+          <span className="h-2.5 w-2.5 rounded-full bg-highlight ring-1 ring-black/10" />
+          Atualização em tempo real offline
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        Reconectando. Enquanto isso, a tela consulta o banco a cada 15 segundos.
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -72,6 +91,7 @@ export function PageHeader({
         </label>
       )}
 
+      <RealtimeOffline />
       <WhatsAppStatus />
       <UserAvatar name={profile.full_name} src={profile.avatar_url} className="hidden sm:flex" />
       {action}

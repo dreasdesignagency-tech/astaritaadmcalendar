@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { signOut, useAuth } from "@/lib/auth";
 import { fetchMyProfile, isMissingSchemaError } from "@/lib/inbox/api";
 import { InboxProfileProvider } from "@/lib/inbox/profile-context";
+import { useInboxRealtime } from "@/lib/inbox/realtime";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
   head: () => ({
@@ -26,6 +27,12 @@ function FullScreen({ children }: { children: React.ReactNode }) {
       <div className="inbox-surface w-full max-w-md rounded-[2rem] p-6">{children}</div>
     </div>
   );
+}
+
+/** Liga o Supabase Realtime enquanto o Inbox estiver aberto. */
+function RealtimeBridge({ userId }: { userId: string }) {
+  useInboxRealtime(userId);
+  return null;
 }
 
 function InboxLayout() {
@@ -90,6 +97,7 @@ function InboxLayout() {
 
   return (
     <InboxProfileProvider value={profile}>
+      <RealtimeBridge userId={profile.id} />
       <InboxShell>
         <Outlet />
       </InboxShell>

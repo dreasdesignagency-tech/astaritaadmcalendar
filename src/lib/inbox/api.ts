@@ -9,7 +9,7 @@ import type { ConversationRow, InboxProfile, PipelineStage } from "./types";
  * Até lá, as consultas passam por este cliente sem tipos e o formato de
  * retorno é garantido pelos tipos de ./types.
  */
-const db = supabase as unknown as SupabaseClient;
+export const db = supabase as unknown as SupabaseClient;
 
 /** Postgres 42P01 / PostgREST PGRST205: a migration do Inbox ainda não foi aplicada. */
 export function isMissingSchemaError(error: unknown): boolean {
@@ -44,7 +44,7 @@ export async function fetchConversations(): Promise<ConversationRow[]> {
   const { data, error } = await db
     .from("conversations")
     .select(
-      "id, status, assigned_to, unread_count, last_message_at, last_message_preview, contact:contacts!inner(id, name, phone, company, instagram, category, notes)",
+      "id, status, assigned_to, unread_count, last_message_at, last_message_preview, updated_at, contact:contacts!inner(id, name, phone, company, instagram, category, notes, assigned_to)",
     )
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(200);
