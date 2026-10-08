@@ -66,6 +66,7 @@
   --color-fundo: var(--fundo);
   --color-fundo-soft: var(--fundo-soft);
   --color-brand: var(--brand);
+  --color-highlight: var(--highlight);
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
 }
@@ -180,4 +181,41 @@
 @media (prefers-reduced-motion: no-preference) {
   .glass-lift { transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }
   .glass-lift:hover { transform: translateY(-2px); }
+}
+
+/*
+ * Astarita Inbox.
+ *
+ * Tokens escopados: valem só dentro de .inbox-theme, então o calendário
+ * continua com o visual atual. Valores aproximados do dashboard de referência
+ * (#F3F5F9 fundo, #4275FF azul, #FFFF65 amarelo); troque aqui se houver tokens oficiais.
+ */
+.inbox-theme {
+  --radius: 1.25rem;
+  --background: oklch(0.97 0.006 260);
+  --foreground: oklch(0.2 0.01 265);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.01 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.01 265);
+  --primary: oklch(0.6 0.2 264);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0.004 260);
+  --secondary-foreground: oklch(0.25 0.01 265);
+  --muted: oklch(0.96 0.004 260);
+  --muted-foreground: oklch(0.52 0.015 265);
+  --accent: oklch(0.95 0.025 264);
+  --accent-foreground: oklch(0.5 0.2 264);
+  --border: oklch(0.93 0.005 260);
+  --input: oklch(0.91 0.006 260);
+  --ring: oklch(0.6 0.2 264);
+  --highlight: oklch(0.98 0.19 108);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.inbox-theme .inbox-surface {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 30px -18px oklch(0.3 0.05 265 / 22%);
 }

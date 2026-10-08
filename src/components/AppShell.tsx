@@ -1,6 +1,6 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, LogOut, Users } from "lucide-react";
+import { CalendarDays, LogOut, MessageSquareText, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { ReactNode } from "react";
 
@@ -10,12 +10,14 @@ import { BrandLogo } from "@/components/BrandLogo";
 const nav = [
   { to: "/", label: "Calendário", icon: CalendarDays },
   { to: "/clientes", label: "Clientes", icon: Users },
+  { to: "/inbox", label: "Inbox", icon: MessageSquareText },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const leave = async () => {
     queryClient.cancelQueries();
@@ -24,6 +26,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     toast.success("Você saiu.");
     void navigate({ to: "/auth", replace: true });
   };
+
+  // O Astarita Inbox tem o próprio layout e visual.
+  if (pathname === "/inbox" || pathname.startsWith("/inbox/")) return <>{children}</>;
 
   return (
     <div className="min-h-screen p-3 text-foreground sm:p-5 lg:p-6">

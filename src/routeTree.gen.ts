@@ -14,6 +14,12 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
+import { Route as AuthenticatedInboxRouteRouteImport } from './routes/_authenticated/inbox/route'
+import { Route as AuthenticatedInboxIndexRouteImport } from './routes/_authenticated/inbox/index'
+import { Route as AuthenticatedInboxConfiguracoesRouteImport } from './routes/_authenticated/inbox/configuracoes'
+import { Route as AuthenticatedInboxContatosRouteImport } from './routes/_authenticated/inbox/contatos'
+import { Route as AuthenticatedInboxFunilRouteImport } from './routes/_authenticated/inbox/funil'
+import { Route as AuthenticatedInboxRespostasRouteImport } from './routes/_authenticated/inbox/respostas'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -39,39 +45,114 @@ const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInboxRouteRoute = AuthenticatedInboxRouteRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInboxIndexRoute = AuthenticatedInboxIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedInboxRouteRoute,
+} as any)
+const AuthenticatedInboxConfiguracoesRoute =
+  AuthenticatedInboxConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedInboxRouteRoute,
+  } as any)
+const AuthenticatedInboxContatosRoute =
+  AuthenticatedInboxContatosRouteImport.update({
+    id: '/contatos',
+    path: '/contatos',
+    getParentRoute: () => AuthenticatedInboxRouteRoute,
+  } as any)
+const AuthenticatedInboxFunilRoute = AuthenticatedInboxFunilRouteImport.update({
+  id: '/funil',
+  path: '/funil',
+  getParentRoute: () => AuthenticatedInboxRouteRoute,
+} as any)
+const AuthenticatedInboxRespostasRoute =
+  AuthenticatedInboxRespostasRouteImport.update({
+    id: '/respostas',
+    path: '/respostas',
+    getParentRoute: () => AuthenticatedInboxRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/inbox': typeof AuthenticatedInboxRouteRouteWithChildren
   '/clientes': typeof AuthenticatedClientesRoute
+  '/inbox/configuracoes': typeof AuthenticatedInboxConfiguracoesRoute
+  '/inbox/contatos': typeof AuthenticatedInboxContatosRoute
+  '/inbox/funil': typeof AuthenticatedInboxFunilRoute
+  '/inbox/respostas': typeof AuthenticatedInboxRespostasRoute
+  '/inbox/': typeof AuthenticatedInboxIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/': typeof AuthenticatedIndexRoute
+  '/inbox/configuracoes': typeof AuthenticatedInboxConfiguracoesRoute
+  '/inbox/contatos': typeof AuthenticatedInboxContatosRoute
+  '/inbox/funil': typeof AuthenticatedInboxFunilRoute
+  '/inbox/respostas': typeof AuthenticatedInboxRespostasRoute
+  '/inbox': typeof AuthenticatedInboxIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/inbox': typeof AuthenticatedInboxRouteRouteWithChildren
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/inbox/configuracoes': typeof AuthenticatedInboxConfiguracoesRoute
+  '/_authenticated/inbox/contatos': typeof AuthenticatedInboxContatosRoute
+  '/_authenticated/inbox/funil': typeof AuthenticatedInboxFunilRoute
+  '/_authenticated/inbox/respostas': typeof AuthenticatedInboxRespostasRoute
+  '/_authenticated/inbox/': typeof AuthenticatedInboxIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/reset-password' | '/clientes'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/inbox'
+    | '/clientes'
+    | '/inbox/configuracoes'
+    | '/inbox/contatos'
+    | '/inbox/funil'
+    | '/inbox/respostas'
+    | '/inbox/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/reset-password' | '/clientes' | '/'
+  to:
+    | '/auth'
+    | '/reset-password'
+    | '/clientes'
+    | '/'
+    | '/inbox/configuracoes'
+    | '/inbox/contatos'
+    | '/inbox/funil'
+    | '/inbox/respostas'
+    | '/inbox'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/inbox'
     | '/_authenticated/clientes'
     | '/_authenticated/'
+    | '/_authenticated/inbox/configuracoes'
+    | '/_authenticated/inbox/contatos'
+    | '/_authenticated/inbox/funil'
+    | '/_authenticated/inbox/respostas'
+    | '/_authenticated/inbox/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,15 +198,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/inbox': {
+      id: '/_authenticated/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AuthenticatedInboxRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inbox/': {
+      id: '/_authenticated/inbox/'
+      path: '/'
+      fullPath: '/inbox/'
+      preLoaderRoute: typeof AuthenticatedInboxIndexRouteImport
+      parentRoute: typeof AuthenticatedInboxRouteRoute
+    }
+    '/_authenticated/inbox/configuracoes': {
+      id: '/_authenticated/inbox/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/inbox/configuracoes'
+      preLoaderRoute: typeof AuthenticatedInboxConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedInboxRouteRoute
+    }
+    '/_authenticated/inbox/contatos': {
+      id: '/_authenticated/inbox/contatos'
+      path: '/contatos'
+      fullPath: '/inbox/contatos'
+      preLoaderRoute: typeof AuthenticatedInboxContatosRouteImport
+      parentRoute: typeof AuthenticatedInboxRouteRoute
+    }
+    '/_authenticated/inbox/funil': {
+      id: '/_authenticated/inbox/funil'
+      path: '/funil'
+      fullPath: '/inbox/funil'
+      preLoaderRoute: typeof AuthenticatedInboxFunilRouteImport
+      parentRoute: typeof AuthenticatedInboxRouteRoute
+    }
+    '/_authenticated/inbox/respostas': {
+      id: '/_authenticated/inbox/respostas'
+      path: '/respostas'
+      fullPath: '/inbox/respostas'
+      preLoaderRoute: typeof AuthenticatedInboxRespostasRouteImport
+      parentRoute: typeof AuthenticatedInboxRouteRoute
+    }
   }
 }
 
+interface AuthenticatedInboxRouteRouteChildren {
+  AuthenticatedInboxConfiguracoesRoute: typeof AuthenticatedInboxConfiguracoesRoute
+  AuthenticatedInboxContatosRoute: typeof AuthenticatedInboxContatosRoute
+  AuthenticatedInboxFunilRoute: typeof AuthenticatedInboxFunilRoute
+  AuthenticatedInboxRespostasRoute: typeof AuthenticatedInboxRespostasRoute
+  AuthenticatedInboxIndexRoute: typeof AuthenticatedInboxIndexRoute
+}
+
+const AuthenticatedInboxRouteRouteChildren: AuthenticatedInboxRouteRouteChildren =
+  {
+    AuthenticatedInboxConfiguracoesRoute: AuthenticatedInboxConfiguracoesRoute,
+    AuthenticatedInboxContatosRoute: AuthenticatedInboxContatosRoute,
+    AuthenticatedInboxFunilRoute: AuthenticatedInboxFunilRoute,
+    AuthenticatedInboxRespostasRoute: AuthenticatedInboxRespostasRoute,
+    AuthenticatedInboxIndexRoute: AuthenticatedInboxIndexRoute,
+  }
+
+const AuthenticatedInboxRouteRouteWithChildren =
+  AuthenticatedInboxRouteRoute._addFileChildren(
+    AuthenticatedInboxRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedInboxRouteRoute: typeof AuthenticatedInboxRouteRouteWithChildren
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedInboxRouteRoute: AuthenticatedInboxRouteRouteWithChildren,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }

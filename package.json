@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "inbox:provision": "node scripts/provision-inbox-users.mjs",
     "format": "prettier --write ."
   },
   "overrides": {
