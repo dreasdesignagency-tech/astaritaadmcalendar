@@ -33,6 +33,7 @@ const storage = (page) => page.evaluate(([ck, ik]) => ({ cal: localStorage.getIt
   const { ctx, page } = await open();
   await page.goto(`${WITH}/inbox`); await page.waitForURL(/\/inbox\/entrar/, { timeout: 15000 });
   check('sem sessão: /inbox redireciona para /inbox/entrar', true);
+  await page.getByText('Este login é só do Inbox').waitFor({ timeout: 10000 }).catch(() => {});
   check('tela de login do Inbox é exibida e avisa que é independente do calendário', await page.getByText('Este login é só do Inbox').isVisible());
   await page.screenshot({ path: `${S}/iso-login.png` });
   await ctx.close();

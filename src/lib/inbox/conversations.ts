@@ -12,7 +12,7 @@ export async function fetchMessages(conversationId: string): Promise<MessageRow[
   const { data, error } = await db
     .from("messages")
     .select(
-      "id, conversation_id, direction, type, body, media_mime, status, error_message, sent_by, created_at",
+      "id, conversation_id, direction, type, body, media_mime, status, error_message, sent_by, reply_to_id, media_path, wa_media_id, created_at",
     )
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })

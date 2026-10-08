@@ -1,0 +1,42 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "WABA_ID",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "15550001111",
+              "phone_number_id": "PHONE_ID"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "Maria Souza"
+                },
+                "wa_id": "5511999998888"
+              }
+            ],
+            "messages": [
+              {
+                "from": "5511999998888",
+                "id": "wamid.IMG1",
+                "timestamp": "1791500060",
+                "type": "image",
+                "image": {
+                  "mime_type": "image/jpeg",
+                  "sha256": "abc",
+                  "id": "MEDIA_IMG_1",
+                  "caption": "Nosso feed atual"
+                }
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}

@@ -45,7 +45,7 @@ const createContact = async (name, phone, extra = {}) => {
   if (extra.company) await page.getByLabel('Empresa').fill(extra.company);
   if (extra.ig) await page.getByLabel('Instagram').fill(extra.ig);
   if (extra.tags) await page.getByLabel('Etiquetas').fill(extra.tags);
-  if (extra.notes) await page.getByLabel('Observações internas').fill(extra.notes);
+  if (extra.notes) await page.getByLabel('Anotação fixa do contato').fill(extra.notes);
   if (extra.category) await pick(page, 'Categoria', extra.category);
   if (extra.owner) await pick(page, 'Responsável', extra.owner);
   await page.getByRole('button', { name: 'Salvar' }).click();
@@ -113,14 +113,16 @@ check('estado "sem mensagens"', true);
 
 // 7. Mensagens chegam (simula o webhook da Fase 4: inserção como service role) e aparecem sem recarregar
 const conv = sql(`select id from conversations`);
-sql(`insert into messages(conversation_id,direction,type,body,status,created_at) values
- ('${conv}','in','text','Oi! Vocês fazem gestão de social media?','received', now() - interval '2 minutes'),
- ('${conv}','in','image',null,'received', now() - interval '1 minute');
+sql(`insert into messages(conversation_id,direction,type,body,status,created_at,wa_media_id) values
+ ('${conv}','in','text','Oi! Vocês fazem gestão de social media?','received', now() - interval '2 minutes', null),
+ ('${conv}','in','image',null,'received', now() - interval '1 minute', 'MEDIA_IMG_1');
  update conversations set last_message_at=now(), last_message_preview='Imagem', unread_count=2, last_inbound_at=now(), status='waiting' where id='${conv}';`);
 const t0 = Date.now();
 await page.waitForSelector('text=Oi! Vocês fazem gestão de social media?', { timeout: 25000 });
 check(`mensagens novas apareceram sem recarregar (via ${Math.round((Date.now() - t0) / 1000)}s de espera)`, true);
-check('anexo recebido tem rótulo', await page.getByText('Imagem recebida').isVisible());
+const imgEl = page.getByAltText('Imagem recebida');
+await imgEl.waitFor({ timeout: 15000 }).catch(() => {});
+check('imagem recebida é exibida por URL assinada do Storage privado (caminho completo de mídia)', (await imgEl.count()) === 1 && /\/storage\/v1\/object\/sign\//.test((await imgEl.getAttribute('src')) ?? ''));
 await page.waitForTimeout(1500);
 check('abrir a conversa zerou não lidas no banco', sql(`select unread_count from conversations where id='${conv}'`) === '0', sql(`select unread_count from conversations`));
 await page.screenshot({ path: `${S}/e2e-chat.png` });
@@ -157,7 +159,7 @@ await page.getByPlaceholder('Buscar conversas').fill('');
 
 // 11. Editar contato a partir do painel de detalhes
 await page.getByRole('button', { name: 'Editar', exact: true }).click();
-await page.getByLabel('Observações internas').fill('Cliente em potencial');
+await page.getByLabel('Anotação fixa do contato').fill('Cliente em potencial');
 await page.getByRole('button', { name: 'Salvar' }).click();
 await page.waitForSelector('text=Contato atualizado.', { timeout: 10000 }).catch(() => {});
 check('edição pelo painel de detalhes persiste', sql(`select notes from contacts where name='Maria Souza'`) === 'Cliente em potencial');

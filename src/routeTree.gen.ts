@@ -18,6 +18,10 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as InboxAppRouteRouteImport } from './routes/inbox/_app/route'
 import { Route as InboxDefinirSenhaRouteImport } from './routes/inbox/definir-senha'
 import { Route as InboxEntrarRouteImport } from './routes/inbox/entrar'
+import { Route as ApiInboxMediaRouteImport } from './routes/api/inbox/media'
+import { Route as ApiInboxSendRouteImport } from './routes/api/inbox/send'
+import { Route as ApiInboxStatusRouteImport } from './routes/api/inbox/status'
+import { Route as ApiWhatsappWebhookRouteImport } from './routes/api/whatsapp/webhook'
 import { Route as InboxAppIndexRouteImport } from './routes/inbox/_app/index'
 import { Route as InboxAppConfiguracoesRouteImport } from './routes/inbox/_app/configuracoes'
 import { Route as InboxAppContatosRouteImport } from './routes/inbox/_app/contatos'
@@ -67,6 +71,26 @@ const InboxEntrarRoute = InboxEntrarRouteImport.update({
   path: '/entrar',
   getParentRoute: () => InboxRouteRoute,
 } as any)
+const ApiInboxMediaRoute = ApiInboxMediaRouteImport.update({
+  id: '/api/inbox/media',
+  path: '/api/inbox/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInboxSendRoute = ApiInboxSendRouteImport.update({
+  id: '/api/inbox/send',
+  path: '/api/inbox/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInboxStatusRoute = ApiInboxStatusRouteImport.update({
+  id: '/api/inbox/status',
+  path: '/api/inbox/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWhatsappWebhookRoute = ApiWhatsappWebhookRouteImport.update({
+  id: '/api/whatsapp/webhook',
+  path: '/api/whatsapp/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InboxAppIndexRoute = InboxAppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -101,6 +125,10 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
+  '/api/inbox/media': typeof ApiInboxMediaRoute
+  '/api/inbox/send': typeof ApiInboxSendRoute
+  '/api/inbox/status': typeof ApiInboxStatusRoute
+  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/inbox/configuracoes': typeof InboxAppConfiguracoesRoute
   '/inbox/contatos': typeof InboxAppContatosRoute
   '/inbox/funil': typeof InboxAppFunilRoute
@@ -115,6 +143,10 @@ export interface FileRoutesByTo {
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/inbox/media': typeof ApiInboxMediaRoute
+  '/api/inbox/send': typeof ApiInboxSendRoute
+  '/api/inbox/status': typeof ApiInboxStatusRoute
+  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/inbox/configuracoes': typeof InboxAppConfiguracoesRoute
   '/inbox/contatos': typeof InboxAppContatosRoute
   '/inbox/funil': typeof InboxAppFunilRoute
@@ -131,6 +163,10 @@ export interface FileRoutesById {
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/inbox/media': typeof ApiInboxMediaRoute
+  '/api/inbox/send': typeof ApiInboxSendRoute
+  '/api/inbox/status': typeof ApiInboxStatusRoute
+  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/inbox/_app/configuracoes': typeof InboxAppConfiguracoesRoute
   '/inbox/_app/contatos': typeof InboxAppContatosRoute
   '/inbox/_app/funil': typeof InboxAppFunilRoute
@@ -147,6 +183,10 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/inbox/definir-senha'
     | '/inbox/entrar'
+    | '/api/inbox/media'
+    | '/api/inbox/send'
+    | '/api/inbox/status'
+    | '/api/whatsapp/webhook'
     | '/inbox/configuracoes'
     | '/inbox/contatos'
     | '/inbox/funil'
@@ -161,6 +201,10 @@ export interface FileRouteTypes {
     | '/inbox/definir-senha'
     | '/inbox/entrar'
     | '/'
+    | '/api/inbox/media'
+    | '/api/inbox/send'
+    | '/api/inbox/status'
+    | '/api/whatsapp/webhook'
     | '/inbox/configuracoes'
     | '/inbox/contatos'
     | '/inbox/funil'
@@ -176,6 +220,10 @@ export interface FileRouteTypes {
     | '/inbox/definir-senha'
     | '/inbox/entrar'
     | '/_authenticated/'
+    | '/api/inbox/media'
+    | '/api/inbox/send'
+    | '/api/inbox/status'
+    | '/api/whatsapp/webhook'
     | '/inbox/_app/configuracoes'
     | '/inbox/_app/contatos'
     | '/inbox/_app/funil'
@@ -188,6 +236,10 @@ export interface RootRouteChildren {
   InboxRouteRoute: typeof InboxRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiInboxMediaRoute: typeof ApiInboxMediaRoute
+  ApiInboxSendRoute: typeof ApiInboxSendRoute
+  ApiInboxStatusRoute: typeof ApiInboxStatusRoute
+  ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -254,6 +306,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/inbox/entrar'
       preLoaderRoute: typeof InboxEntrarRouteImport
       parentRoute: typeof InboxRouteRoute
+    }
+    '/api/inbox/media': {
+      id: '/api/inbox/media'
+      path: '/api/inbox/media'
+      fullPath: '/api/inbox/media'
+      preLoaderRoute: typeof ApiInboxMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/inbox/send': {
+      id: '/api/inbox/send'
+      path: '/api/inbox/send'
+      fullPath: '/api/inbox/send'
+      preLoaderRoute: typeof ApiInboxSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/inbox/status': {
+      id: '/api/inbox/status'
+      path: '/api/inbox/status'
+      fullPath: '/api/inbox/status'
+      preLoaderRoute: typeof ApiInboxStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/whatsapp/webhook': {
+      id: '/api/whatsapp/webhook'
+      path: '/api/whatsapp/webhook'
+      fullPath: '/api/whatsapp/webhook'
+      preLoaderRoute: typeof ApiWhatsappWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/inbox/_app/': {
       id: '/inbox/_app/'
@@ -347,6 +427,10 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRouteRoute: InboxRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiInboxMediaRoute: ApiInboxMediaRoute,
+  ApiInboxSendRoute: ApiInboxSendRoute,
+  ApiInboxStatusRoute: ApiInboxStatusRoute,
+  ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

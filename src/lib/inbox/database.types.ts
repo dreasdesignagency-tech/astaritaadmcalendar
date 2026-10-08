@@ -285,6 +285,7 @@ export type Database = {
           status: string;
           status_updated_at: string | null;
           type: string;
+          wa_media_id: string | null;
           wa_message_id: string | null;
         };
         Insert: {
@@ -303,6 +304,7 @@ export type Database = {
           status?: string;
           status_updated_at?: string | null;
           type?: string;
+          wa_media_id?: string | null;
           wa_message_id?: string | null;
         };
         Update: {
@@ -321,6 +323,7 @@ export type Database = {
           status?: string;
           status_updated_at?: string | null;
           type?: string;
+          wa_media_id?: string | null;
           wa_message_id?: string | null;
         };
         Relationships: [
@@ -618,6 +621,42 @@ export type Database = {
     };
     Functions: {
       is_inbox_member: { Args: never; Returns: boolean };
+      // Funções do backend (migration inbox_whatsapp_notes, ainda não aplicada): só service_role executa.
+      inbox_ingest_inbound: {
+        Args: {
+          p_wa_id: string;
+          p_profile_name: string | null;
+          p_wa_message_id: string;
+          p_type: string;
+          p_body: string | null;
+          p_media_mime: string | null;
+          p_wa_media_id: string | null;
+          p_sent_at: string;
+        };
+        Returns: Json;
+      };
+      inbox_ingest_echo: {
+        Args: {
+          p_to_wa_id: string;
+          p_wa_message_id: string;
+          p_type: string;
+          p_body: string | null;
+          p_media_mime: string | null;
+          p_wa_media_id: string | null;
+          p_sent_at: string;
+        };
+        Returns: Json;
+      };
+      inbox_apply_status: {
+        Args: {
+          p_wa_message_id: string;
+          p_status: string;
+          p_at: string;
+          p_error_code: string | null;
+          p_error_message: string | null;
+        };
+        Returns: number;
+      };
     };
     Enums: {
       [_ in never]: never;
