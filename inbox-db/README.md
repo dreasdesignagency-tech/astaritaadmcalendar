@@ -20,6 +20,10 @@ mudar um byte muda o hash e perde a prova de que é o que está no banco.
 O arquivo abre com guardas que abortam se as tabelas ou funções já existirem. Por isso aplicá-lo de novo no
 projeto Inbox falha sem alterar nada, o que é o comportamento desejado.
 
+## Configurar o projeto real
+
+Ver `SETUP.md` (passo a passo, o que depende de você e o que a auditoria confere) e `sql/` (auditoria somente leitura e criação dos perfis).
+
 ## Pendência: ledger de migrations
 
 A instalação foi feita pelo SQL Editor, então `supabase_migrations.schema_migrations` não existe e o CLI acredita que
