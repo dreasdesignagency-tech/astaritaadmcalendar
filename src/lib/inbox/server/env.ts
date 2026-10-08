@@ -80,3 +80,17 @@ export function aiEnvStatus(): {
     missing,
   };
 }
+
+/** Configuração completa da IA (inclui a chave). Só no servidor; nunca devolver ao navegador. */
+export function aiConfig():
+  | { ok: true; provider: "anthropic" | "openai"; apiKey: string; model: string; baseUrl?: string }
+  | { ok: false; missing: string[] } {
+  const st = aiEnvStatus();
+  const provider = env("INBOX_AI_PROVIDER");
+  const apiKey = env("INBOX_AI_API_KEY");
+  const model = env("INBOX_AI_MODEL");
+  if (!st.configured || !apiKey || !model || (provider !== "anthropic" && provider !== "openai"))
+    return { ok: false, missing: st.missing };
+  const baseUrl = env("INBOX_AI_BASE_URL");
+  return { ok: true, provider, apiKey, model, ...(baseUrl ? { baseUrl } : {}) };
+}

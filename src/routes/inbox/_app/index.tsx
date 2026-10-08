@@ -178,6 +178,7 @@ function InboxPage() {
             tags={fullContact?.tags.map((t) => t.name) ?? []}
             onEditContact={() => setContactDialog("edit")}
             onUseDraft={applyDraft}
+            draft={draft}
           />
         </div>
       </div>
@@ -193,6 +194,7 @@ function InboxPage() {
               conversation={selected}
               team={team}
               tags={fullContact?.tags.map((t) => t.name) ?? []}
+              draft={draft}
               onUseDraft={(text) => {
                 applyDraft(text);
                 setDetailsOpen(false);

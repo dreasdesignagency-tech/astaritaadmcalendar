@@ -4,7 +4,9 @@ import { Check, Circle } from "lucide-react";
 
 import { PageHeader } from "@/components/inbox/PageHeader";
 import { UserAvatar } from "@/components/inbox/UserAvatar";
-import { AI_STATE, WHATSAPP_STATE, fetchTeam } from "@/lib/inbox/api";
+import { KnowledgeEditor } from "@/components/inbox/KnowledgeEditor";
+import { fetchTeam } from "@/lib/inbox/api";
+import { useChannelStatus } from "@/lib/inbox/channel";
 import { ROLE_LABEL } from "@/lib/inbox/types";
 
 export const Route = createFileRoute("/inbox/_app/configuracoes")({
@@ -30,6 +32,26 @@ function Status({ ok, label, detail }: { ok: boolean; label: string; detail: str
 
 function SettingsPage() {
   const team = useQuery({ queryKey: ["inbox", "team"], queryFn: fetchTeam });
+  const channel = useChannelStatus();
+  const wa = channel.data?.whatsapp;
+  const ai = channel.data?.ai;
+
+  const waDetail = channel.isPending
+    ? "Verificando…"
+    : channel.isError || !wa
+      ? "Não foi possível verificar agora."
+      : !wa.configured
+        ? `Não conectado. Falta configurar no servidor: ${wa.missing.join(", ")}.`
+        : wa.reachable === true
+          ? `Conectado${wa.phone ? ` ao número ${wa.phone}` : ""}${wa.verifiedName ? ` (${wa.verifiedName})` : ""}.`
+          : `Configurado, mas a Meta não respondeu com essas credenciais${wa.error ? `: ${wa.error}` : "."}`;
+  const aiDetail = channel.isPending
+    ? "Verificando…"
+    : channel.isError || !ai
+      ? "Não foi possível verificar agora."
+      : ai.configured
+        ? `Ligado (${ai.provider}, modelo ${ai.model}). A IA só sugere; você revisa e envia.`
+        : `Não ligado. Falta configurar no servidor: ${ai.missing.join(", ")}.`;
 
   return (
     <>
@@ -64,16 +86,20 @@ function SettingsPage() {
           <h2 className="mb-3 font-display text-base font-semibold">Conexões</h2>
           <ul className="space-y-2">
             <Status
-              ok={WHATSAPP_STATE !== "not_connected"}
+              ok={!!wa?.configured && wa.reachable === true}
               label="WhatsApp Business Platform"
-              detail="Não conectado. Integração oficial com a Cloud API entra na Fase 4."
+              detail={waDetail}
             />
-            <Status
-              ok={AI_STATE !== "not_configured"}
-              label="Assistente de IA"
-              detail="Não configurado. Provedor e base de conhecimento entram na Fase 5."
-            />
+            <Status ok={!!ai?.configured} label="Assistente de IA" detail={aiDetail} />
           </ul>
+        </section>
+
+        <section className="inbox-surface rounded-[2rem] p-5 sm:p-6 lg:col-span-2">
+          <h2 className="mb-1 font-display text-base font-semibold">Conhecimento da Astarita</h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            É daqui que o Assistente tira as informações. O que ficar em branco, ele não inventa.
+          </p>
+          <KnowledgeEditor />
         </section>
       </div>
     </>

@@ -57,7 +57,3 @@ export async function fetchPipelineStages(): Promise<PipelineStage[]> {
   if (error) throw error;
   return (data ?? []) as PipelineStage[];
 }
-
-/** Estado da integração. Só muda quando a Fase 4 existir de verdade e for testada com a Meta. */
-export const WHATSAPP_STATE = "not_connected" as "not_connected" | "connected";
-export const AI_STATE = "not_configured" as "not_configured" | "configured";

@@ -12,13 +12,42 @@ import { cn } from "@/lib/utils";
 type Chip = { label: string; hint: string; dot: string };
 
 function whatsappChip(status: ReturnType<typeof useChannelStatus>): Chip {
-  if (status.isPending) return { label: "Verificando WhatsApp…", hint: "Consultando o servidor.", dot: "bg-muted-foreground/40" };
-  if (status.isError) return { label: "WhatsApp: sem verificação", hint: "Não foi possível consultar o servidor sobre o WhatsApp.", dot: "bg-highlight ring-1 ring-black/10" };
+  if (status.isPending)
+    return {
+      label: "Verificando WhatsApp…",
+      hint: "Consultando o servidor.",
+      dot: "bg-muted-foreground/40",
+    };
+  if (status.isError)
+    return {
+      label: "WhatsApp: sem verificação",
+      hint: "Não foi possível consultar o servidor sobre o WhatsApp.",
+      dot: "bg-highlight ring-1 ring-black/10",
+    };
   const w = status.data.whatsapp;
-  if (!w.configured) return { label: "WhatsApp não conectado", hint: `Faltam variáveis no servidor: ${w.missing.join(", ")}.`, dot: "bg-highlight ring-1 ring-black/10" };
-  if (w.reachable === false) return { label: "WhatsApp com erro", hint: w.error ?? "A Meta recusou as credenciais.", dot: "bg-destructive" };
-  if (w.reachable === true) return { label: `WhatsApp conectado${w.phone ? ` (${w.phone})` : ""}`, hint: w.verifiedName ? `Conta: ${w.verifiedName}` : "Credenciais confirmadas pela Meta.", dot: "bg-green-500" };
-  return { label: "WhatsApp configurado", hint: "Credenciais presentes; conexão ainda não confirmada.", dot: "bg-highlight ring-1 ring-black/10" };
+  if (!w.configured)
+    return {
+      label: "WhatsApp não conectado",
+      hint: `Faltam variáveis no servidor: ${w.missing.join(", ")}.`,
+      dot: "bg-highlight ring-1 ring-black/10",
+    };
+  if (w.reachable === false)
+    return {
+      label: "WhatsApp com erro",
+      hint: w.error ?? "A Meta recusou as credenciais.",
+      dot: "bg-destructive",
+    };
+  if (w.reachable === true)
+    return {
+      label: `WhatsApp conectado${w.phone ? ` (${w.phone})` : ""}`,
+      hint: w.verifiedName ? `Conta: ${w.verifiedName}` : "Credenciais confirmadas pela Meta.",
+      dot: "bg-green-500",
+    };
+  return {
+    label: "WhatsApp configurado",
+    hint: "Credenciais presentes; conexão ainda não confirmada.",
+    dot: "bg-highlight ring-1 ring-black/10",
+  };
 }
 
 function WhatsAppStatus() {

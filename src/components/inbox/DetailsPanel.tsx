@@ -91,12 +91,14 @@ export function DetailsPanel({
   tags,
   onEditContact,
   onUseDraft,
+  draft,
 }: {
   conversation: ConversationRow | undefined;
   team: InboxProfile[];
   tags: string[];
   onEditContact: () => void;
   onUseDraft: (text: string) => void;
+  draft: string;
 }) {
   const contact = conversation?.contact;
   const owner = team.find((p) => p.id === conversation?.assigned_to)?.full_name;
@@ -131,7 +133,7 @@ export function DetailsPanel({
         )}
       </section>
 
-      <AssistantPanel conversation={conversation} onUseDraft={onUseDraft} />
+      <AssistantPanel conversation={conversation} draft={draft} onUseDraft={onUseDraft} />
 
       {contact && (
         <>

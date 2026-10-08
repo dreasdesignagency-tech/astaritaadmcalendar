@@ -18,6 +18,7 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as InboxAppRouteRouteImport } from './routes/inbox/_app/route'
 import { Route as InboxDefinirSenhaRouteImport } from './routes/inbox/definir-senha'
 import { Route as InboxEntrarRouteImport } from './routes/inbox/entrar'
+import { Route as ApiInboxAiRouteImport } from './routes/api/inbox/ai'
 import { Route as ApiInboxMediaRouteImport } from './routes/api/inbox/media'
 import { Route as ApiInboxSendRouteImport } from './routes/api/inbox/send'
 import { Route as ApiInboxStatusRouteImport } from './routes/api/inbox/status'
@@ -70,6 +71,11 @@ const InboxEntrarRoute = InboxEntrarRouteImport.update({
   id: '/entrar',
   path: '/entrar',
   getParentRoute: () => InboxRouteRoute,
+} as any)
+const ApiInboxAiRoute = ApiInboxAiRouteImport.update({
+  id: '/api/inbox/ai',
+  path: '/api/inbox/ai',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiInboxMediaRoute = ApiInboxMediaRouteImport.update({
   id: '/api/inbox/media',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
+  '/api/inbox/ai': typeof ApiInboxAiRoute
   '/api/inbox/media': typeof ApiInboxMediaRoute
   '/api/inbox/send': typeof ApiInboxSendRoute
   '/api/inbox/status': typeof ApiInboxStatusRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/inbox/ai': typeof ApiInboxAiRoute
   '/api/inbox/media': typeof ApiInboxMediaRoute
   '/api/inbox/send': typeof ApiInboxSendRoute
   '/api/inbox/status': typeof ApiInboxStatusRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/inbox/ai': typeof ApiInboxAiRoute
   '/api/inbox/media': typeof ApiInboxMediaRoute
   '/api/inbox/send': typeof ApiInboxSendRoute
   '/api/inbox/status': typeof ApiInboxStatusRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/inbox/definir-senha'
     | '/inbox/entrar'
+    | '/api/inbox/ai'
     | '/api/inbox/media'
     | '/api/inbox/send'
     | '/api/inbox/status'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/inbox/definir-senha'
     | '/inbox/entrar'
     | '/'
+    | '/api/inbox/ai'
     | '/api/inbox/media'
     | '/api/inbox/send'
     | '/api/inbox/status'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/inbox/definir-senha'
     | '/inbox/entrar'
     | '/_authenticated/'
+    | '/api/inbox/ai'
     | '/api/inbox/media'
     | '/api/inbox/send'
     | '/api/inbox/status'
@@ -236,6 +248,7 @@ export interface RootRouteChildren {
   InboxRouteRoute: typeof InboxRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiInboxAiRoute: typeof ApiInboxAiRoute
   ApiInboxMediaRoute: typeof ApiInboxMediaRoute
   ApiInboxSendRoute: typeof ApiInboxSendRoute
   ApiInboxStatusRoute: typeof ApiInboxStatusRoute
@@ -306,6 +319,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/inbox/entrar'
       preLoaderRoute: typeof InboxEntrarRouteImport
       parentRoute: typeof InboxRouteRoute
+    }
+    '/api/inbox/ai': {
+      id: '/api/inbox/ai'
+      path: '/api/inbox/ai'
+      fullPath: '/api/inbox/ai'
+      preLoaderRoute: typeof ApiInboxAiRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/inbox/media': {
       id: '/api/inbox/media'
@@ -427,6 +447,7 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRouteRoute: InboxRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiInboxAiRoute: ApiInboxAiRoute,
   ApiInboxMediaRoute: ApiInboxMediaRoute,
   ApiInboxSendRoute: ApiInboxSendRoute,
   ApiInboxStatusRoute: ApiInboxStatusRoute,

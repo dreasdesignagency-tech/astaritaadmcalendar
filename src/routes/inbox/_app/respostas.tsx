@@ -41,7 +41,7 @@ function QuickRepliesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [removing, setRemoving] = useState<QuickReply | null>(null);
 
-  const rows = replies.data ?? [];
+  const rows = useMemo(() => replies.data ?? [], [replies.data]);
   const q = search.trim().toLowerCase();
   const visible = useMemo(
     () => rows.filter((r) => !q || `${r.title} ${r.body}`.toLowerCase().includes(q)),
