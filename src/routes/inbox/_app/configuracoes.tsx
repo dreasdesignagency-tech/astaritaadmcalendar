@@ -7,7 +7,7 @@ import { UserAvatar } from "@/components/inbox/UserAvatar";
 import { AI_STATE, WHATSAPP_STATE, fetchTeam } from "@/lib/inbox/api";
 import { ROLE_LABEL } from "@/lib/inbox/types";
 
-export const Route = createFileRoute("/_authenticated/inbox/configuracoes")({
+export const Route = createFileRoute("/inbox/_app/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações | Astarita Inbox" }] }),
   component: SettingsPage,
 });

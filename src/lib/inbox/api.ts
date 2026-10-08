@@ -1,15 +1,12 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/inbox/client";
 import type { ConversationRow, InboxProfile, PipelineStage } from "./types";
 
 /**
- * As tabelas do Inbox ainda não estão no types.ts gerado pelo Supabase
- * (o arquivo é regenerado automaticamente depois que a migration roda).
- * Até lá, as consultas passam por este cliente sem tipos e o formato de
- * retorno é garantido pelos tipos de ./types.
+ * As consultas do Inbox usam o cliente do projeto Supabase do Inbox (ver ./client.ts).
+ * Ainda não há tipos gerados desse projeto (pendente, ver inbox-db/README.md): o formato
+ * de retorno é garantido pelos tipos de ./types.
  */
-export const db = supabase as unknown as SupabaseClient;
+export { db };
 
 /** Postgres 42P01 / PostgREST PGRST205: a migration do Inbox ainda não foi aplicada. */
 export function isMissingSchemaError(error: unknown): boolean {

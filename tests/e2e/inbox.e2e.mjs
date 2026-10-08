@@ -15,7 +15,7 @@ async function session(browser, sub, email, vp = { width: 1440, height: 900 }) {
   const ctx = await browser.newContext({ viewport: vp });
   const token = jwt(sub, email);
   const s = { access_token: token, refresh_token: 'r', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer', user: { id: sub, aud: 'authenticated', email, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
-  await ctx.addInitScript(([k, v]) => localStorage.setItem(k, v), ['sb-127-auth-token', JSON.stringify(s)]);
+  await ctx.addInitScript(([k, v]) => localStorage.setItem(k, v), ['astarita-inbox-auth', JSON.stringify(s)]);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
   return { ctx, page };

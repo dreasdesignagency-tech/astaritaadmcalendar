@@ -24,7 +24,7 @@ import { useFallbackInterval } from "@/lib/inbox/realtime";
 import { CATEGORY_LABEL, type ContactCategory, type ContactRow } from "@/lib/inbox/types";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/inbox/contatos")({
+export const Route = createFileRoute("/inbox/_app/contatos")({
   head: () => ({ meta: [{ title: "Contatos | Astarita Inbox" }] }),
   component: ContactsPage,
 });

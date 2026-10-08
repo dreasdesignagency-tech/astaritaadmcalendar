@@ -1,89 +1,107 @@
 # Astarita Inbox
 
-Central privada de atendimento via WhatsApp, dentro do mesmo app do calendário (TanStack Start + Supabase).
-Acesso em `/inbox`. O calendário continua intacto; o Inbox tem layout e tokens próprios (`.inbox-theme` em `src/styles.css`).
+Central privada de atendimento via WhatsApp, no mesmo repositório do calendário (TanStack Start + Supabase),
+mas com **banco, login e sessão totalmente separados**.
 
-## Por que não Next.js
-O repositório já é TanStack Start + Vite + Supabase, ligado ao Lovable. Trocar de framework não traria nada ao Inbox
-e arriscaria o calendário. O que seriam route handlers do Next entra aqui como server routes do TanStack Start (Fase 4).
+## Arquitetura em uma olhada
 
-## Fases
-| Fase | Escopo | Estado |
+| | Calendário | Inbox |
 |---|---|---|
-| 1 | Fundação: banco, RLS, auth, layout, design system | feita |
-| 2 | Conversas, contatos, histórico, filtros, responsáveis, tempo real | feita (sem envio, que é da Fase 4) |
-| 3 | Funil, respostas rápidas, notas, lembretes | pendente |
-| 4 | WhatsApp Cloud API oficial | pendente |
-| 5 | IA e base de conhecimento | pendente |
-| 6 | Qualidade e produção | pendente |
+| Rotas | `/`, `/clientes`, `/auth`... | `/inbox/*` |
+| Projeto Supabase | o já existente | **Astarita Inbox** (`yappbzpayqejqpkfebho`) |
+| Variáveis | `VITE_SUPABASE_*` | `VITE_INBOX_SUPABASE_*` |
+| Cliente | `src/integrations/supabase/client.ts` | `src/lib/inbox/client.ts` |
+| Login | `/auth` | `/inbox/entrar` |
+| Sessão no navegador | chave `sb-…-auth-token` | chave `astarita-inbox-auth` |
+| Proteção de rotas | `_authenticated` | `/inbox/_app` |
 
-## Configuração (uma vez)
-1. **Aplicar as migrations, nesta ordem**, no projeto Supabase (SQL Editor, ou pelo fluxo de migrations):
-   `20261008000000_inbox_foundation.sql` e depois `20261009000000_inbox_realtime_contacts.sql`.
-   As duas só criam tabelas novas e adicionam tabelas à publicação do Realtime. Não mexem em `clients` nem `contents`.
-   Para conferir se já foram aplicadas, rode no SQL Editor (somente leitura):
-   `select table_name from information_schema.tables where table_schema='public' and table_name in ('profiles','contacts','conversations','messages');`
-   Se voltar vazio, ainda não foram.
-2. **Desativar cadastro público**: Supabase > Authentication > Providers > Email > desligar "Allow new users to sign up".
-   Mesmo com o cadastro aberto, quem não tem perfil ativo não vê nenhum dado do Inbox (RLS), mas o ideal é fechar.
-3. **Provisionar Andreas e Juline** (no seu terminal; as chaves nunca vão para o GitHub):
+O Inbox não importa nada do calendário e o calendário não importa nada do Inbox (verificado por teste automático).
+**O token do calendário não vale no Inbox e vice-versa**: são projetos Auth diferentes.
+Andreas e Juline precisam de uma conta no projeto Inbox, com senha própria.
+
+O cliente do Inbox só é criado quando alguém abre `/inbox`. Se as variáveis `VITE_INBOX_*` faltarem, `/inbox` mostra
+"Inbox não configurado" (com os nomes das variáveis) e o calendário nem percebe. O app também recusa:
+a URL do calendário no lugar da do Inbox, e qualquer chave `service_role`/`sb_secret_` no frontend.
+
+## Banco
+
+Ver `inbox-db/README.md`. Resumo: o SQL exato aprovado está em `inbox-db/supabase/migrations/20261008000000_inbox_install.sql`
+(SHA-256 `0fba7362…ff24`), já aplicado no projeto Inbox pelo SQL Editor (13 tabelas, RLS em todas, 42 políticas, 7 triggers,
+Realtime em 5 tabelas). **Não reaplicar**: o arquivo tem guardas que abortam se algo já existir.
+As migrations antigas (`inbox-db/superseded/`) ficam só como registro e **não devem ser aplicadas**.
+
+Pendências do banco: reconciliar o ledger de migrations e gerar os tipos reais (instruções no `inbox-db/README.md`),
+e definir backup antes de dados reais (o painel mostrava "No backups").
+
+## Configuração para rodar
+
+1. No `.env` local (e no ambiente onde o app for publicado), defina `VITE_INBOX_SUPABASE_URL` e
+   `VITE_INBOX_SUPABASE_PUBLISHABLE_KEY` com a URL e a **chave publicável atual** do projeto Astarita Inbox
+   (Painel > Project Settings > API). Nunca a service role.
+2. No projeto Inbox, em Authentication, desative o cadastro público ("Allow new users to sign up")
+   e cadastre em "URL Configuration" o endereço do app e `…/inbox/definir-senha` como URL permitida de redirecionamento.
+3. Crie/identifique os usuários de Andreas e Juline no projeto Inbox (Authentication > Users) e rode, no seu terminal:
    ```bash
-   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... ANDREAS_EMAIL=... JULINE_EMAIL=... npm run inbox:provision
+   INBOX_SUPABASE_URL=https://yappbzpayqejqpkfebho.supabase.co \
+   INBOX_SUPABASE_SERVICE_ROLE_KEY=... ANDREAS_EMAIL=... JULINE_EMAIL=... \
+   node scripts/provision-inbox-users.mjs --dry-run      # confere o que seria feito
+   node scripts/provision-inbox-users.mjs                # reaproveita quem já existe e cria os perfis
    ```
-   Cada um recebe um convite por e-mail e define a própria senha. Se o e-mail já existe como usuário do calendário,
-   o script só cria o perfil.
+   Por padrão o script **não cria usuário e não manda convite**: quem não existe é só avisado.
+   Convite por e-mail só com `--invite` (e `INBOX_SITE_URL`). O envio de e-mail padrão de projetos novos do Supabase é limitado;
+   se o convite não chegar, o caminho é configurar SMTP próprio.
+4. Quem já tem conta mas não tem senha usa "Definir ou recuperar senha" na tela de entrada.
 
 ## Rodar localmente
 ```bash
 bun install        # ou npm install
 bun run dev
 ```
-Precisa de `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (veja `.env.example`).
 
-## Modelo de acesso
-`public.is_inbox_member()` (perfil ativo) guarda todas as políticas. No navegador:
-- mensagens só podem ser lidas ou enfileiradas como envio `pending` pelo próprio usuário; mudar status é só do backend;
-- `webhook_events` é só leitura; `pipeline_stages` é fixa;
-- perfis só podem editar o próprio nome e avatar.
+## Fases
+| Fase | Escopo | Estado |
+|---|---|---|
+| 1 | Fundação: banco, RLS, layout, design system | feita |
+| 2 | Conversas, contatos, histórico, filtros, responsáveis, tempo real | feita (sem envio, que é da Fase 4) |
+| integração | Cliente, login e sessão próprios do Inbox | código pronto; **depende de configuração real** (ver abaixo) |
+| 3 | Funil, respostas rápidas, notas, lembretes | pendente |
+| 4 | WhatsApp Cloud API oficial | pendente |
+| 5 | IA e base de conhecimento | pendente |
+| 6 | Qualidade e produção | pendente |
 
-## Fase 2: o que existe
+## O que o Inbox faz hoje
 
-**Autenticação:** o Inbox usa o mesmo login do calendário (`/auth`, Supabase Auth). Nenhuma conta nova é criada.
-Quem não tem perfil ativo em `profiles` vê "Acesso restrito" e nenhum dado (a RLS garante isso no banco, não só na tela).
+**Contatos** (`/inbox/contatos`): criar, editar, buscar (nome, empresa, Instagram, etiqueta, parte do telefone), filtrar
+(categoria, responsável, etiqueta), iniciar/abrir conversa. Telefone normalizado (`src/lib/inbox/phone.ts`); duplicidade
+considera o nono dígito brasileiro. Não há exclusão de contatos nesta fase.
 
-**Contatos** (`/inbox/contatos`): criar, editar, buscar (nome, empresa, Instagram, etiqueta, parte do telefone),
-filtrar (categoria, responsável, etiqueta), iniciar/abrir a conversa. Telefone é normalizado (`src/lib/inbox/phone.ts`)
-e a duplicidade considera o nono dígito brasileiro (com e sem). Não há exclusão de contatos nesta fase, de propósito.
+**Caixa de entrada** (`/inbox`): lista com filtros e busca, histórico de mensagens, atribuir responsável, resolver e reabrir,
+edição do contato pelo painel, "Novo contato" que já abre a conversa. Abrir a conversa zera as não lidas.
+Resolver, reabrir e atribuir só gravam se a conversa não mudou desde que a tela carregou (`updated_at`).
 
-**Caixa de entrada** (`/inbox`): lista com filtros e busca, histórico de mensagens (texto, rótulo para mídia,
-indicadores de envio), atribuir responsável, resolver e reabrir, edição do contato pelo painel de detalhes,
-"Novo contato" que já abre a conversa. Abrir a conversa zera as não lidas.
-Atribuir responsável a uma conversa "aguardando" a move para "em atendimento".
-Reabrir volta para "em atendimento" se há responsável, senão para "aguardando".
-
-**Conflito de atendimento:** resolver, reabrir e atribuir só gravam se a conversa não mudou desde que a tela carregou
-(comparação por `updated_at`). Se outra pessoa mexeu antes, nada é sobrescrito e aparece um aviso.
-
-**Tempo real** (`src/lib/inbox/realtime.ts`): uma assinatura Supabase Realtime (`postgres_changes`) em `conversations`,
-`messages`, `contacts`, `contact_tags` e `tags`. Os eventos só invalidam o cache; os dados vêm das consultas normais,
-sempre sob RLS, e o Realtime também só entrega linhas que a pessoa pode ler. Se a conexão cair, aparece um aviso no
-cabeçalho e a tela consulta o banco a cada 15s até reconectar (e busca o que perdeu ao voltar).
+**Tempo real** (`src/lib/inbox/realtime.ts`): assinatura Supabase Realtime em `conversations`, `messages`, `contacts`,
+`contact_tags`, `tags`, pelo cliente do Inbox. Os eventos só invalidam o cache; os dados vêm de consultas sob RLS.
+Se a conexão cair, aparece um aviso e a tela consulta a cada 15 s até reconectar.
 
 **Ainda não existe:** envio de mensagens (campo desabilitado até a Fase 4), anexos, respostas rápidas, funil com cartões,
-lembretes, notas, IA. Mensagens só passam a existir quando o webhook da Fase 4 as gravar.
+lembretes, notas, IA.
 
 ## Testes
 
-| O quê | Como | Resultado |
-|---|---|---|
-| Lógica pura (telefone, nono dígito, Instagram, regras de status) | `node --test tests/inbox/logic.test.mjs` | 6/6 |
-| Migrations + RLS | aplicadas num Postgres 16 local; intruso, anônimo, membro e perfil desativado | ok |
-| Ponta a ponta no navegador | `tests/e2e/` (ver README lá): app real, PostgREST, Postgres com RLS e JWT assinado | 37/37 |
-| Tipos e build | `npx tsc --noEmit`, `npx vite build` | ok |
+```bash
+npm test                 # unitários (Node, sem dependências): 26 testes
+```
+Ponta a ponta no navegador: ver `tests/e2e/README.md`. Ambiente local com Postgres + PostgREST + RLS, usando o SQL exato
+instalado, GoTrue **simulado** e Realtime **ausente** (o app cai no modo de contingência).
 
-O e2e cobre: acesso restrito, criar/editar contato, duplicado e telefone inválido, busca e todos os filtros, abrir conversa,
-mensagens novas na tela, não lidas, atribuir/resolver/reabrir, conflito de edição, segunda pessoa vendo os mesmos dados,
-perfil desativado e layout de celular.
+| O quê | Resultado |
+|---|---|
+| Unitários: telefone, status, configuração (inclui chave secreta e URL do calendário), paginação de usuários, isolamento por código | 26/26 |
+| SQL exato aprovado aplicado em banco limpo com privilégios padrão do Supabase; reaplicar aborta | ok |
+| E2E funcional (contatos, conversas, filtros, responsáveis, conflito, RLS, celular) | 37/37 |
+| E2E isolamento, login, definir senha, configuração ausente, regressão do calendário | 29/29 |
+| `tsc --noEmit`, `vite build` (também sem nenhuma variável do Inbox) | ok |
 
-**Não coberto por teste:** o Supabase Realtime de verdade (servidor local não existe; só o modo de contingência foi testado),
-o projeto Supabase de produção, e qualquer coisa do WhatsApp.
+**Não coberto por teste (depende de configuração real):** login com GoTrue de verdade e convite/e-mail, Supabase Realtime
+de verdade entre duas sessões, o projeto Astarita Inbox real (nenhuma conexão a ele foi feita a partir do código ou dos testes),
+reconciliação do ledger, tipos gerados reais, backup, e tudo do WhatsApp.

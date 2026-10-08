@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "inbox:provision": "node scripts/provision-inbox-users.mjs",
+    "inbox:types": "supabase --workdir inbox-db gen types typescript --project-id yappbzpayqejqpkfebho --schema public > src/lib/inbox/database.types.ts",
+    "test": "node --test \"tests/unit/*.test.mjs\"",
     "format": "prettier --write ."
   },
   "overrides": {

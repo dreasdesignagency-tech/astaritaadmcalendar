@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 import { UserAvatar } from "@/components/inbox/UserAvatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { signOut } from "@/lib/auth";
+import { inboxSignOut } from "@/lib/inbox/auth";
 import { useInboxProfile } from "@/lib/inbox/profile-context";
 import { ROLE_LABEL } from "@/lib/inbox/types";
 import { cn } from "@/lib/utils";
@@ -46,11 +46,12 @@ export function InboxShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   const leave = async () => {
-    queryClient.cancelQueries();
-    queryClient.clear();
-    await signOut();
-    toast.success("Você saiu.");
-    void navigate({ to: "/auth", replace: true });
+    // Só o cache do Inbox: o cache do calendário continua intacto.
+    await queryClient.cancelQueries({ queryKey: ["inbox"] });
+    queryClient.removeQueries({ queryKey: ["inbox"] });
+    await inboxSignOut();
+    toast.success("Você saiu do Inbox.");
+    void navigate({ to: "/inbox/entrar", replace: true });
   };
 
   return (

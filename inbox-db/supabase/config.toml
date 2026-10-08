@@ -1,0 +1,3 @@
+# Projeto Supabase EXCLUSIVO do Astarita Inbox (separado do calendário).
+# Use sempre com --workdir inbox-db, nunca na raiz: supabase/ da raiz é do calendário.
+project_id = "yappbzpayqejqpkfebho"

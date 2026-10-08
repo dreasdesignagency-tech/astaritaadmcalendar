@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/inbox/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPipelineStages } from "@/lib/inbox/api";
 
-export const Route = createFileRoute("/_authenticated/inbox/funil")({
+export const Route = createFileRoute("/inbox/_app/funil")({
   head: () => ({ meta: [{ title: "Funil comercial | Astarita Inbox" }] }),
   component: PipelinePage,
 });

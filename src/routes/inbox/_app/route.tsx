@@ -1,30 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Asterisk, DatabaseZap, LogOut, ShieldAlert, WifiOff } from "lucide-react";
+import { useEffect } from "react";
 
 import { EmptyState } from "@/components/inbox/EmptyState";
+import { InboxScreen } from "@/components/inbox/InboxScreen";
 import { InboxShell } from "@/components/inbox/InboxShell";
 import { Button } from "@/components/ui/button";
-import { signOut, useAuth } from "@/lib/auth";
 import { fetchMyProfile, isMissingSchemaError } from "@/lib/inbox/api";
+import { inboxSignOut, useInboxAuth } from "@/lib/inbox/auth";
 import { InboxProfileProvider } from "@/lib/inbox/profile-context";
 import { useInboxRealtime } from "@/lib/inbox/realtime";
 
-export const Route = createFileRoute("/_authenticated/inbox")({
-  head: () => ({
-    meta: [
-      { title: "Astarita Inbox" },
-      { name: "description", content: "Central de atendimento da Astarita." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
-  component: InboxLayout,
+/**
+ * Área protegida do Inbox: exige login no projeto do Inbox (não no do calendário)
+ * e um perfil ativo em public.profiles.
+ */
+export const Route = createFileRoute("/inbox/_app")({
+  component: InboxAppLayout,
 });
 
-function FullScreen({ children }: { children: React.ReactNode }) {
+function Loading() {
   return (
-    <div className="inbox-theme fixed inset-0 flex items-center justify-center bg-background p-4">
-      <div className="inbox-surface w-full max-w-md rounded-[2rem] p-6">{children}</div>
+    <div className="inbox-theme fixed inset-0 flex items-center justify-center bg-background">
+      <span className="flex h-14 w-14 animate-pulse items-center justify-center rounded-full bg-primary text-primary-foreground">
+        <Asterisk className="h-7 w-7" strokeWidth={2.5} />
+      </span>
     </div>
   );
 }
@@ -35,9 +36,14 @@ function RealtimeBridge({ userId }: { userId: string }) {
   return null;
 }
 
-function InboxLayout() {
-  const { user } = useAuth();
+function InboxAppLayout() {
+  const { ready, user } = useInboxAuth();
+  const navigate = useNavigate();
   const userId = user?.id ?? "";
+
+  useEffect(() => {
+    if (ready && !user) void navigate({ to: "/inbox/entrar", replace: true });
+  }, [ready, user, navigate]);
 
   const profileQuery = useQuery({
     queryKey: ["inbox", "profile", userId],
@@ -46,27 +52,22 @@ function InboxLayout() {
     retry: false,
   });
 
-  if (profileQuery.isPending) {
-    return (
-      <div className="inbox-theme fixed inset-0 flex items-center justify-center bg-background">
-        <span className="flex h-14 w-14 animate-pulse items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <Asterisk className="h-7 w-7" strokeWidth={2.5} />
-        </span>
-      </div>
-    );
-  }
+  if (!ready || !user) return <Loading />;
+  if (profileQuery.isPending) return <Loading />;
 
   if (profileQuery.isError) {
     const missing = isMissingSchemaError(profileQuery.error);
     return (
-      <FullScreen>
+      <InboxScreen>
         <EmptyState
           tone="error"
           icon={missing ? DatabaseZap : WifiOff}
-          title={missing ? "O banco do Inbox ainda não foi criado" : "Não foi possível conectar"}
+          title={
+            missing ? "O banco do Inbox não tem as tabelas esperadas" : "Não foi possível conectar"
+          }
         >
           {missing
-            ? "Aplique a migration 20261008000000_inbox_foundation.sql no Supabase e recarregue a página."
+            ? "Confira se as variáveis VITE_INBOX_* apontam para o projeto Supabase Astarita Inbox."
             : "Verifique sua internet e tente de novo."}
         </EmptyState>
         <div className="flex justify-center">
@@ -74,24 +75,24 @@ function InboxLayout() {
             Tentar de novo
           </Button>
         </div>
-      </FullScreen>
+      </InboxScreen>
     );
   }
 
   const profile = profileQuery.data;
   if (!profile || !profile.active) {
     return (
-      <FullScreen>
+      <InboxScreen>
         <EmptyState icon={ShieldAlert} title="Acesso restrito">
-          O Astarita Inbox é privado. Esta conta ({user?.email}) não está autorizada. Peça acesso a
+          O Astarita Inbox é privado. Esta conta ({user.email}) não está autorizada. Peça acesso a
           quem administra o sistema.
         </EmptyState>
         <div className="flex justify-center">
-          <Button variant="outline" className="rounded-full" onClick={() => void signOut()}>
+          <Button variant="outline" className="rounded-full" onClick={() => void inboxSignOut()}>
             <LogOut className="mr-2 h-4 w-4" /> Sair
           </Button>
         </div>
-      </FullScreen>
+      </InboxScreen>
     );
   }
 

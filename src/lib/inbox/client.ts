@@ -1,0 +1,56 @@
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+import { readInboxConfig, type InboxConfig } from "@/lib/inbox/config";
+
+/**
+ * Cliente Supabase exclusivo do Inbox.
+ *
+ * - Variáveis próprias (VITE_INBOX_*), lidas só aqui.
+ * - Criado sob demanda, na primeira vez que o Inbox é usado. Quem abre só o calendário nunca o cria,
+ *   então a falta destas variáveis não afeta o calendário.
+ * - Sessão guardada em localStorage com chave própria. Não usa o armazenamento intermediado do
+ *   calendário (que repassa a sessão ao editor do Lovable) e nunca lê a sessão do calendário.
+ * - Não importa nada de @/integrations/supabase: os dois mundos ficam separados.
+ */
+export const INBOX_STORAGE_KEY = "astarita-inbox-auth";
+
+export function getInboxConfig(): InboxConfig {
+  return readInboxConfig({
+    inboxUrl: import.meta.env["VITE_INBOX_SUPABASE_URL"] as string | undefined,
+    inboxKey: import.meta.env["VITE_INBOX_SUPABASE_PUBLISHABLE_KEY"] as string | undefined,
+    calendarUrl: import.meta.env["VITE_SUPABASE_URL"] as string | undefined,
+  });
+}
+
+export class InboxNotConfiguredError extends Error {
+  constructor(public readonly config: Exclude<InboxConfig, { ok: true }>) {
+    super("Inbox não configurado");
+  }
+}
+
+let client: SupabaseClient | undefined;
+
+export function getInboxClient(): SupabaseClient {
+  if (client) return client;
+  const config = getInboxConfig();
+  if (!config.ok) throw new InboxNotConfiguredError(config);
+
+  client = createClient(config.url, config.key, {
+    auth: {
+      storageKey: INBOX_STORAGE_KEY,
+      storage: typeof window === "undefined" ? undefined : window.localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+      // Convite e recuperação de senha chegam por link com token na URL.
+      detectSessionInUrl: true,
+    },
+  });
+  return client;
+}
+
+/** Atalho para consultas: resolve o cliente só quando alguma consulta de fato roda. */
+export const db: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_, prop, receiver) {
+    return Reflect.get(getInboxClient(), prop, receiver);
+  },
+});

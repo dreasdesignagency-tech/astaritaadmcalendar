@@ -4,7 +4,7 @@ import { Zap } from "lucide-react";
 import { EmptyState } from "@/components/inbox/EmptyState";
 import { PageHeader } from "@/components/inbox/PageHeader";
 
-export const Route = createFileRoute("/_authenticated/inbox/respostas")({
+export const Route = createFileRoute("/inbox/_app/respostas")({
   head: () => ({ meta: [{ title: "Respostas rápidas | Astarita Inbox" }] }),
   component: QuickRepliesPage,
 });

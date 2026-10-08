@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useSyncExternalStore } from "react";
 
-import { supabase } from "@/integrations/supabase/client";
+import { getInboxClient } from "@/lib/inbox/client";
 
 /**
  * Atualizações em tempo real via Supabase Realtime (postgres_changes).
@@ -51,6 +51,7 @@ export function useInboxRealtime(userId: string) {
       timer = setTimeout(() => void queryClient.invalidateQueries({ queryKey: ["inbox"] }), 250);
     };
 
+    const supabase = getInboxClient();
     let channel = supabase.channel(`inbox-${userId}`);
     for (const table of WATCHED) {
       channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, refresh);

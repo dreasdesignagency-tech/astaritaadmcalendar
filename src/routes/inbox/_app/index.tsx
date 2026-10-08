@@ -23,7 +23,7 @@ import {
 import { useFallbackInterval } from "@/lib/inbox/realtime";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/inbox/")({
+export const Route = createFileRoute("/inbox/_app/")({
   validateSearch: (search: Record<string, unknown>): { c?: string } => {
     const c = search["c"];
     return typeof c === "string" && c.length > 0 ? { c } : {};
