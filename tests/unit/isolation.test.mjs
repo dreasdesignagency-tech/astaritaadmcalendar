@@ -44,9 +44,37 @@ test("o cliente do Inbox usa armazenamento e chave de sessão próprios", () => 
   assert.ok(!/previewAuthStorage|brokeredPreviewStorage/.test(src));
 });
 
-test("nenhum arquivo do Inbox menciona service role", () => {
-  for (const f of inboxFiles) {
-    if (f.endsWith("lib/inbox/config.ts")) continue; // lá só aparece para recusar a chave
-    assert.ok(!/service_role|SERVICE_ROLE/.test(readFileSync(f, "utf8")), `${f} menciona service role`);
+const isServerFile = (f) => f.includes("src/lib/inbox/server/") || f.startsWith("src/routes/api/");
+const allInbox = [...inboxFiles, ...walk("src/routes/api")];
+const clientFiles = allInbox.filter((f) => !isServerFile(f));
+
+test("código do navegador nunca importa código de servidor (que usa service role e tokens da Meta)", () => {
+  for (const f of clientFiles) {
+    for (const imp of importsOf(f)) {
+      assert.ok(!/inbox\/server\//.test(imp), `${f} importa ${imp}`);
+    }
   }
+});
+
+test("arquivos do navegador não mencionam service role nem tokens da Meta", () => {
+  for (const f of clientFiles.filter((f) => !f.endsWith("lib/inbox/config.ts") && !f.endsWith("database.types.ts"))) {
+    const src = readFileSync(f, "utf8");
+    assert.ok(!/service_role|SERVICE_ROLE|WHATSAPP_ACCESS_TOKEN|META_APP_SECRET/.test(src), `${f} menciona segredo de servidor`);
+  }
+});
+
+test("segredos nunca usam o prefixo VITE_ (o Vite embute VITE_* no navegador)", () => {
+  const secretNames = /VITE_[A-Z0-9_]*(SECRET|SERVICE|TOKEN|API_KEY|PASSWORD)/;
+  for (const f of [...allInbox, ...walk("scripts").filter(() => false)]) {
+    const src = readFileSync(f, "utf8");
+    assert.ok(!secretNames.test(src.replace(/VITE_INBOX_SUPABASE_PUBLISHABLE_KEY/g, "")), `${f} sugere segredo com prefixo VITE_`);
+  }
+});
+
+test("rotas de API do Inbox exigem login (requireMember) ou validam assinatura (webhook)", () => {
+  for (const f of walk("src/routes/api/inbox")) {
+    assert.match(readFileSync(f, "utf8"), /requireMember\(/, `${f} não chama requireMember`);
+  }
+  assert.match(readFileSync("src/routes/api/whatsapp/webhook.ts", "utf8"), /handleWebhookPost/);
+  assert.match(readFileSync("src/lib/inbox/server/whatsapp-service.ts", "utf8"), /verifySignature\(/);
 });
