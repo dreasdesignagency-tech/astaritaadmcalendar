@@ -41,7 +41,7 @@ export async function fetchConversations(): Promise<ConversationRow[]> {
   const { data, error } = await db
     .from("conversations")
     .select(
-      "id, status, assigned_to, unread_count, last_message_at, last_message_preview, updated_at, contact:contacts!inner(id, name, phone, company, instagram, category, notes, assigned_to)",
+      "id, status, assigned_to, unread_count, last_message_at, last_message_preview, last_inbound_at, updated_at, contact:contacts!inner(id, name, phone, company, instagram, category, notes, assigned_to)",
     )
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(200);
@@ -52,7 +52,7 @@ export async function fetchConversations(): Promise<ConversationRow[]> {
 export async function fetchPipelineStages(): Promise<PipelineStage[]> {
   const { data, error } = await db
     .from("pipeline_stages")
-    .select("id, slug, name, position")
+    .select("id, slug, name, position, is_won, is_lost")
     .order("position");
   if (error) throw error;
   return (data ?? []) as PipelineStage[];

@@ -1,5 +1,5 @@
 import { db } from "@/lib/inbox/api";
-import { InboxUserError } from "@/lib/inbox/contacts";
+import { InboxUserError } from "@/lib/inbox/errors";
 import type { TablesUpdate } from "@/lib/inbox/database.types";
 import { reopenedStatus, statusAfterAssign } from "@/lib/inbox/status";
 import type { ConversationRow, ConversationStatus, MessageRow } from "@/lib/inbox/types";

@@ -19,6 +19,7 @@ export type ConversationRow = {
   unread_count: number;
   last_message_at: string | null;
   last_message_preview: string | null;
+  last_inbound_at: string | null;
   updated_at: string;
   contact: {
     id: string;
@@ -60,6 +61,9 @@ export type MessageRow = {
   status: MessageStatus;
   error_message: string | null;
   sent_by: string | null;
+  reply_to_id: string | null;
+  media_path: string | null;
+  wa_media_id: string | null;
   created_at: string;
 };
 
@@ -68,6 +72,8 @@ export type PipelineStage = {
   slug: string;
   name: string;
   position: number;
+  is_won: boolean;
+  is_lost: boolean;
 };
 
 export const STATUS_LABEL: Record<ConversationStatus, string> = {

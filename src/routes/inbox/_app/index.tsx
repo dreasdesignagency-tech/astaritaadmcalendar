@@ -42,6 +42,8 @@ function InboxPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [contactDialog, setContactDialog] = useState<"new" | "edit" | null>(null);
   const [busy, setBusy] = useState(false);
+  // Rascunhos por conversa: trocar de conversa não perde o que foi digitado. Nada daqui é enviado sozinho.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   const conversations = useQuery({
     queryKey: ["inbox", "conversations"],
@@ -74,6 +76,12 @@ function InboxPage() {
       );
     }
   }, [activeId, unread, queryClient]);
+
+  const draft = activeId ? (drafts[activeId] ?? "") : "";
+  const setDraft = (text: string) => {
+    if (activeId) setDrafts((d) => ({ ...d, [activeId]: text }));
+  };
+  const applyDraft = (text: string) => setDraft(text);
 
   const select = (id: string) => void navigate({ search: { c: id } });
   const back = () => void navigate({ search: {} });
@@ -151,6 +159,8 @@ function InboxPage() {
             onReopen={() =>
               selected && void act(() => reopenConversation(selected), "Conversa reaberta.")
             }
+            draft={draft}
+            onDraftChange={setDraft}
             onAssign={(id) =>
               selected &&
               void act(
@@ -167,6 +177,7 @@ function InboxPage() {
             team={team}
             tags={fullContact?.tags.map((t) => t.name) ?? []}
             onEditContact={() => setContactDialog("edit")}
+            onUseDraft={applyDraft}
           />
         </div>
       </div>
@@ -182,6 +193,10 @@ function InboxPage() {
               conversation={selected}
               team={team}
               tags={fullContact?.tags.map((t) => t.name) ?? []}
+              onUseDraft={(text) => {
+                applyDraft(text);
+                setDetailsOpen(false);
+              }}
               onEditContact={() => {
                 setDetailsOpen(false);
                 setContactDialog("edit");

@@ -1,37 +1,38 @@
 import { Search } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { RemindersPopover } from "@/components/inbox/RemindersPopover";
 import { UserAvatar } from "@/components/inbox/UserAvatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { WHATSAPP_STATE } from "@/lib/inbox/api";
+import { useChannelStatus } from "@/lib/inbox/channel";
 import { useInboxProfile } from "@/lib/inbox/profile-context";
 import { useRealtimeState } from "@/lib/inbox/realtime";
 import { cn } from "@/lib/utils";
 
-const WHATSAPP_COPY = {
-  not_connected: {
-    label: "WhatsApp não conectado",
-    hint: "A conexão com a Cloud API oficial da Meta entra na Fase 4.",
-    dot: "bg-highlight ring-1 ring-black/10",
-  },
-  connected: {
-    label: "WhatsApp conectado",
-    hint: "Recebendo mensagens pela Cloud API oficial.",
-    dot: "bg-green-500",
-  },
-};
+type Chip = { label: string; hint: string; dot: string };
+
+function whatsappChip(status: ReturnType<typeof useChannelStatus>): Chip {
+  if (status.isPending) return { label: "Verificando WhatsApp…", hint: "Consultando o servidor.", dot: "bg-muted-foreground/40" };
+  if (status.isError) return { label: "WhatsApp: sem verificação", hint: "Não foi possível consultar o servidor sobre o WhatsApp.", dot: "bg-highlight ring-1 ring-black/10" };
+  const w = status.data.whatsapp;
+  if (!w.configured) return { label: "WhatsApp não conectado", hint: `Faltam variáveis no servidor: ${w.missing.join(", ")}.`, dot: "bg-highlight ring-1 ring-black/10" };
+  if (w.reachable === false) return { label: "WhatsApp com erro", hint: w.error ?? "A Meta recusou as credenciais.", dot: "bg-destructive" };
+  if (w.reachable === true) return { label: `WhatsApp conectado${w.phone ? ` (${w.phone})` : ""}`, hint: w.verifiedName ? `Conta: ${w.verifiedName}` : "Credenciais confirmadas pela Meta.", dot: "bg-green-500" };
+  return { label: "WhatsApp configurado", hint: "Credenciais presentes; conexão ainda não confirmada.", dot: "bg-highlight ring-1 ring-black/10" };
+}
 
 function WhatsAppStatus() {
-  const copy = WHATSAPP_COPY[WHATSAPP_STATE];
+  const status = useChannelStatus();
+  const chip = whatsappChip(status);
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="inbox-surface hidden items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium text-muted-foreground lg:flex">
-          <span className={cn("h-2.5 w-2.5 rounded-full", copy.dot)} />
-          {copy.label}
+          <span className={cn("h-2.5 w-2.5 rounded-full", chip.dot)} />
+          {chip.label}
         </span>
       </TooltipTrigger>
-      <TooltipContent>{copy.hint}</TooltipContent>
+      <TooltipContent>{chip.hint}</TooltipContent>
     </Tooltip>
   );
 }
@@ -93,6 +94,7 @@ export function PageHeader({
 
       <RealtimeOffline />
       <WhatsAppStatus />
+      <RemindersPopover />
       <UserAvatar name={profile.full_name} src={profile.avatar_url} className="hidden sm:flex" />
       {action}
     </header>

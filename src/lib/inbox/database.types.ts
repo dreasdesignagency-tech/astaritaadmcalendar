@@ -1,3 +1,5 @@
+// ATENÇÃO: estendido à mão com `internal_notes` e `messages.wa_media_id` (migration inbox_whatsapp_notes, ainda não aplicada
+// no banco real). Regerar com `npm run inbox:types` depois de aplicá-la.
 // Gerado com o Supabase MCP (generate_typescript_types) a partir do projeto Astarita Inbox (yappbzpayqejqpkfebho).
 // Regerar com: npm run inbox:types. Nunca misturar com src/integrations/supabase/types.ts, que é do calendário.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -188,6 +190,45 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: true;
             referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      internal_notes: {
+        Row: {
+          body: string;
+          contact_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+        };
+        Insert: {
+          body: string;
+          contact_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+        };
+        Update: {
+          body?: string;
+          contact_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "internal_notes_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "internal_notes_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];

@@ -1,7 +1,12 @@
-import { ArrowLeft, CheckCircle2, MessageSquare, PanelRight, RotateCcw, Send } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CheckCircle2, MessageSquare, PanelRight, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
+import { Composer } from "@/components/inbox/Composer";
 import { EmptyState } from "@/components/inbox/EmptyState";
 import { MessageList } from "@/components/inbox/MessageList";
+import { retrySend } from "@/lib/inbox/messaging";
 import { UserAvatar } from "@/components/inbox/UserAvatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +38,8 @@ export function ChatPane({
   onResolve,
   onReopen,
   onAssign,
+  draft,
+  onDraftChange,
 }: {
   conversation: ConversationRow | undefined;
   team: InboxProfile[];
@@ -46,7 +53,20 @@ export function ChatPane({
   onResolve: () => void;
   onReopen: () => void;
   onAssign: (assigneeId: string | null) => void;
+  draft: string;
+  onDraftChange: (text: string) => void;
 }) {
+  const queryClient = useQueryClient();
+  const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
+  const conversationId = conversation?.id;
+  useEffect(() => setReplyTo(null), [conversationId]);
+
+  const retry = async (m: MessageRow) => {
+    const r = await retrySend(m.id);
+    await queryClient.invalidateQueries({ queryKey: ["inbox", "messages", m.conversation_id] });
+    if (!r.ok) toast.error(r.error);
+  };
+
   if (!conversation) {
     return (
       <section className="inbox-surface hidden min-h-0 items-center justify-center rounded-[2rem] md:flex">
@@ -143,28 +163,18 @@ export function ChatPane({
           loading={messagesLoading}
           error={messagesError}
           onRetry={onRetryMessages}
+          onReply={setReplyTo}
+          onRetrySend={(m) => void retry(m)}
         />
       </div>
 
-      <div className="shrink-0 border-t border-border p-3 sm:p-4">
-        <div className="flex items-end gap-2">
-          <textarea
-            disabled
-            rows={2}
-            placeholder="O envio pelo WhatsApp entra na Fase 4."
-            className="min-h-[52px] flex-1 resize-none rounded-3xl border border-border bg-secondary px-4 py-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-70"
-            aria-label="Mensagem"
-          />
-          <Button
-            disabled
-            className="h-[52px] w-[52px] rounded-full"
-            size="icon"
-            aria-label="Enviar"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
+      <Composer
+        conversation={conversation}
+        draft={draft}
+        onDraftChange={onDraftChange}
+        replyTo={replyTo}
+        onClearReply={() => setReplyTo(null)}
+      />
     </section>
   );
 }

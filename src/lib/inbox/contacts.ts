@@ -1,9 +1,10 @@
 import { db } from "@/lib/inbox/api";
+import { InboxUserError } from "@/lib/inbox/errors";
+import { ensureOpportunity, stageIdBySlug } from "@/lib/inbox/funnel";
 import { normalizeInstagram, normalizePhone, phoneVariants } from "@/lib/inbox/phone";
 import type { ContactCategory, ContactRow, TagRow } from "@/lib/inbox/types";
 
-/** Erro com mensagem pronta para mostrar a quem usa o sistema. */
-export class InboxUserError extends Error {}
+export { InboxUserError } from "@/lib/inbox/errors";
 
 type RawContact = Omit<ContactRow, "tags" | "conversation"> & {
   contact_tags: { tag: TagRow | null }[] | null;
@@ -81,6 +82,15 @@ export async function saveContact(input: ContactInput, id?: string): Promise<str
     const { data, error } = await db.from("contacts").insert(row).select("id").single();
     if (error) throw mapError(error);
     contactId = (data as { id: string }).id;
+    if (row.category === "lead") {
+      // Lead novo entra no funil em "Novo lead". Falha aqui não desfaz o contato: dá para adicionar depois.
+      try {
+        const stage = await stageIdBySlug("novo-lead");
+        if (stage) await ensureOpportunity(contactId, stage, row.name);
+      } catch {
+        /* o contato já foi criado */
+      }
+    }
   }
   await syncTags(contactId as string, input.tags);
   return contactId as string;

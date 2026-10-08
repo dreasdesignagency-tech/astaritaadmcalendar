@@ -3,29 +3,22 @@ import {
   Check,
   CheckCheck,
   Clock,
-  FileText,
-  Image as ImageIcon,
-  Mic,
+  CornerUpLeft,
   MessageSquare,
-  Video,
+  RotateCw,
   WifiOff,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { EmptyState } from "@/components/inbox/EmptyState";
+import { MediaView } from "@/components/inbox/MediaView";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { MessageRow } from "@/lib/inbox/types";
 import { cn } from "@/lib/utils";
 
-const MEDIA_LABEL: Partial<
-  Record<MessageRow["type"], { label: string; received: string; icon: typeof FileText }>
-> = {
-  image: { label: "Imagem", received: "Imagem recebida", icon: ImageIcon },
-  document: { label: "Documento", received: "Documento recebido", icon: FileText },
-  audio: { label: "Áudio", received: "Áudio recebido", icon: Mic },
-  video: { label: "Vídeo", received: "Vídeo recebido", icon: Video },
-  sticker: { label: "Figurinha", received: "Figurinha recebida", icon: ImageIcon },
-};
+const MEDIA_TYPES = new Set(["image", "document", "audio", "video", "sticker"]);
+/** Pendente há mais que isso, sem confirmação do backend: oferece tentar de novo. */
+const STUCK_AFTER_MS = 20_000;
 
 function dayLabel(iso: string): string {
   const d = new Date(iso);
@@ -40,7 +33,7 @@ function dayLabel(iso: string): string {
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-/** Indicador de envio: só mostra "enviado" quando o banco confirma (o backend atualiza o status). */
+/** Indicador de envio: só mostra "enviada" quando o banco confirma (o backend atualiza o status). */
 function DeliveryMark({ message }: { message: MessageRow }) {
   switch (message.status) {
     case "pending":
@@ -58,23 +51,35 @@ function DeliveryMark({ message }: { message: MessageRow }) {
   }
 }
 
+const STATUS_TEXT: Record<string, string> = {
+  pending: "Enviando…",
+  sent: "Enviada",
+  delivered: "Entregue",
+  read: "Lida",
+};
+
 export function MessageList({
   messages,
   loading,
   error,
   onRetry,
+  onReply,
+  onRetrySend,
 }: {
   messages: MessageRow[];
   loading: boolean;
   error: boolean;
   onRetry: () => void;
+  onReply: (message: MessageRow) => void;
+  onRetrySend: (message: MessageRow) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
-  const lastId = messages[messages.length - 1]?.id;
+  const last = messages[messages.length - 1];
+  const lastKey = last ? `${last.id}:${last.status}` : "";
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [lastId]);
+  }, [lastKey]);
 
   if (loading) {
     return (
@@ -104,12 +109,13 @@ export function MessageList({
     return (
       <div className="flex flex-1 items-center justify-center">
         <EmptyState icon={MessageSquare} title="Nenhuma mensagem ainda">
-          As mensagens recebidas aparecem aqui assim que chegarem.
+          As mensagens aparecem aqui assim que chegarem ou forem enviadas.
         </EmptyState>
       </div>
     );
   }
 
+  const byId = new Map(messages.map((m) => [m.id, m]));
   let currentDay = "";
   return (
     <div
@@ -124,9 +130,13 @@ export function MessageList({
           const showDay = day !== currentDay;
           currentDay = day;
           const out = m.direction === "out";
-          const media = MEDIA_LABEL[m.type];
+          const quoted = m.reply_to_id ? byId.get(m.reply_to_id) : undefined;
+          const failed = m.status === "failed";
+          const stuck =
+            m.status === "pending" && Date.now() - Date.parse(m.created_at) > STUCK_AFTER_MS;
+          const hasMedia = MEDIA_TYPES.has(m.type) && (m.media_path || m.wa_media_id);
           return (
-            <li key={m.id} className="flex flex-col">
+            <li key={m.id} className="group flex flex-col">
               {showDay && (
                 <span className="my-3 self-center rounded-full bg-card px-3 py-1 text-[11px] text-muted-foreground shadow-sm">
                   {dayLabel(m.created_at)}
@@ -134,36 +144,77 @@ export function MessageList({
               )}
               <div
                 className={cn(
-                  "max-w-[85%] rounded-3xl px-4 py-2.5 text-sm sm:max-w-[70%]",
-                  out
-                    ? "self-end rounded-br-lg bg-primary text-primary-foreground"
-                    : "self-start rounded-bl-lg border border-border bg-card",
-                  m.status === "failed" && "bg-destructive text-destructive-foreground",
+                  "flex items-end gap-1",
+                  out ? "flex-row-reverse self-end" : "self-start",
                 )}
               >
-                {media && (
-                  <p className="mb-1 flex items-center gap-1.5 text-xs opacity-80">
-                    <media.icon className="h-3.5 w-3.5" />{" "}
-                    {m.direction === "in" ? media.received : media.label}
-                  </p>
-                )}
-                {m.type === "unsupported" && (
-                  <p className="text-xs opacity-80">Tipo de mensagem não suportado</p>
-                )}
-                {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
-                <p
+                <div
                   className={cn(
-                    "mt-1 flex items-center justify-end gap-1 text-[10px]",
-                    out ? "opacity-80" : "text-muted-foreground",
+                    "max-w-[85%] rounded-3xl px-4 py-2.5 text-sm sm:max-w-[28rem]",
+                    out
+                      ? "rounded-br-lg bg-primary text-primary-foreground"
+                      : "rounded-bl-lg border border-border bg-card",
+                    failed && "bg-destructive text-destructive-foreground",
                   )}
                 >
-                  {time(m.created_at)}
-                  {out && <DeliveryMark message={m} />}
-                </p>
-                {m.status === "failed" && (
-                  <p className="mt-1 text-[11px]">
-                    Não enviada{m.error_message ? `: ${m.error_message}` : "."}
+                  {quoted && (
+                    <p
+                      className={cn(
+                        "mb-1.5 line-clamp-2 rounded-xl border-l-2 px-2 py-1 text-xs",
+                        out
+                          ? "border-white/60 bg-white/15"
+                          : "border-primary bg-secondary text-muted-foreground",
+                      )}
+                    >
+                      {quoted.body ?? "mensagem"}
+                    </p>
+                  )}
+                  {hasMedia && (
+                    <div className="mb-1">
+                      <MediaView message={m} />
+                    </div>
+                  )}
+                  {MEDIA_TYPES.has(m.type) && !hasMedia && (
+                    <p className="mb-1 text-xs opacity-80">Anexo ainda não disponível</p>
+                  )}
+                  {m.type === "unsupported" && (
+                    <p className="text-xs opacity-80">Tipo de mensagem não suportado</p>
+                  )}
+                  {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
+                  <p
+                    className={cn(
+                      "mt-1 flex items-center justify-end gap-1 text-[10px]",
+                      out ? "opacity-80" : "text-muted-foreground",
+                    )}
+                  >
+                    {time(m.created_at)}
+                    {out && <DeliveryMark message={m} />}
+                    {out && !failed && !stuck && STATUS_TEXT[m.status] && (
+                      <span className="sr-only">{STATUS_TEXT[m.status]}</span>
+                    )}
                   </p>
+                  {(failed || stuck) && (
+                    <p className="mt-1 text-[11px]">
+                      {failed
+                        ? `Não enviada${m.error_message ? `: ${m.error_message}` : "."}`
+                        : "Sem confirmação de envio."}{" "}
+                      <button
+                        className="inline-flex items-center gap-1 underline"
+                        onClick={() => onRetrySend(m)}
+                      >
+                        <RotateCw className="h-3 w-3" /> Tentar de novo
+                      </button>
+                    </p>
+                  )}
+                </div>
+                {m.type !== "template" && (
+                  <button
+                    onClick={() => onReply(m)}
+                    aria-label="Responder esta mensagem"
+                    className="mb-1 rounded-full p-1.5 text-muted-foreground opacity-0 transition hover:bg-card hover:text-primary focus-visible:opacity-100 group-hover:opacity-100"
+                  >
+                    <CornerUpLeft className="h-4 w-4" />
+                  </button>
                 )}
               </div>
             </li>

@@ -229,7 +229,7 @@ export function ContactDialog({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="c-notes">Observações internas</Label>
+            <Label htmlFor="c-notes">Anotação fixa do contato</Label>
             <Textarea
               id="c-notes"
               rows={3}

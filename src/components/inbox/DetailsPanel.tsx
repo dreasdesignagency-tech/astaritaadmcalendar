@@ -1,18 +1,24 @@
-import { Asterisk, Pencil, Sparkles } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Pencil } from "lucide-react";
+import { toast } from "sonner";
 
+import { AssistantPanel } from "@/components/inbox/AssistantPanel";
+import { NotesSection } from "@/components/inbox/NotesSection";
+import { RemindersSection } from "@/components/inbox/RemindersSection";
 import { Button } from "@/components/ui/button";
-import { AI_STATE } from "@/lib/inbox/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { fetchPipelineStages } from "@/lib/inbox/api";
+import { fetchContactStage, setContactStage } from "@/lib/inbox/funnel";
 import { formatPhone } from "@/lib/inbox/phone";
 import { CATEGORY_LABEL, type ConversationRow, type InboxProfile } from "@/lib/inbox/types";
 
-const AI_ACTIONS = [
-  "Sugerir resposta",
-  "Mais natural",
-  "Mais curta",
-  "Mais profissional",
-  "Mais acolhedora",
-  "Resumir conversa",
-];
+const NO_STAGE = "none";
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
@@ -25,16 +31,72 @@ function Field({ label, value }: { label: string; value: string | null | undefin
   );
 }
 
+/** Etapa comercial do contato: cria a oportunidade no funil na primeira escolha e move nas seguintes. */
+function StageField({ contactId }: { contactId: string }) {
+  const queryClient = useQueryClient();
+  const stages = useQuery({ queryKey: ["inbox", "stages"], queryFn: fetchPipelineStages });
+  const current = useQuery({
+    queryKey: ["inbox", "contact-stage", contactId],
+    queryFn: () => fetchContactStage(contactId),
+  });
+
+  const change = async (stageId: string) => {
+    if (stageId === NO_STAGE) return;
+    try {
+      await setContactStage(contactId, stageId);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["inbox", "contact-stage", contactId] }),
+        queryClient.invalidateQueries({ queryKey: ["inbox", "opportunities"] }),
+      ]);
+      toast.success("Etapa comercial atualizada.");
+    } catch {
+      toast.error("Não foi possível atualizar a etapa. Tente de novo.");
+    }
+  };
+
+  return (
+    <div>
+      <dt className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+        Etapa comercial
+      </dt>
+      <dd>
+        <Select
+          value={current.data?.stage_id ?? NO_STAGE}
+          onValueChange={(v) => void change(v)}
+          disabled={stages.isPending || current.isPending}
+        >
+          <SelectTrigger
+            className="h-9 rounded-full text-sm"
+            aria-label="Etapa comercial do contato"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="inbox-theme">
+            {!current.data && <SelectItem value={NO_STAGE}>Fora do funil</SelectItem>}
+            {stages.data?.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </dd>
+    </div>
+  );
+}
+
 export function DetailsPanel({
   conversation,
   team,
   tags,
   onEditContact,
+  onUseDraft,
 }: {
   conversation: ConversationRow | undefined;
   team: InboxProfile[];
   tags: string[];
   onEditContact: () => void;
+  onUseDraft: (text: string) => void;
 }) {
   const contact = conversation?.contact;
   const owner = team.find((p) => p.id === conversation?.assigned_to)?.full_name;
@@ -58,8 +120,9 @@ export function DetailsPanel({
             <Field label="Instagram" value={contact.instagram} />
             <Field label="Categoria" value={CATEGORY_LABEL[contact.category]} />
             <Field label="Responsável" value={owner} />
+            <StageField contactId={contact.id} />
             <Field label="Etiquetas" value={tags.join(", ")} />
-            <Field label="Observações" value={contact.notes} />
+            <Field label="Anotação fixa" value={contact.notes} />
           </dl>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -68,25 +131,14 @@ export function DetailsPanel({
         )}
       </section>
 
-      <section className="inbox-surface rounded-[2rem] p-5" aria-label="Assistente Astarita">
-        <h2 className="mb-3 flex items-center gap-1.5 font-display text-base font-semibold">
-          Assistente Astarita <Asterisk className="h-4 w-4 text-primary" strokeWidth={3} />
-        </h2>
-        {AI_STATE === "not_configured" && (
-          <p className="mb-3 flex items-start gap-2 rounded-2xl bg-highlight/70 px-3 py-2 text-xs text-foreground/80">
-            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            IA não configurada. Nenhuma sugestão é simulada. O atendimento e as respostas rápidas
-            funcionam sem ela.
-          </p>
-        )}
-        <div className="flex flex-wrap gap-2">
-          {AI_ACTIONS.map((label) => (
-            <Button key={label} variant="outline" size="sm" className="rounded-full" disabled>
-              {label}
-            </Button>
-          ))}
-        </div>
-      </section>
+      <AssistantPanel conversation={conversation} onUseDraft={onUseDraft} />
+
+      {contact && (
+        <>
+          <RemindersSection contactId={contact.id} />
+          <NotesSection contactId={contact.id} />
+        </>
+      )}
     </div>
   );
 }
