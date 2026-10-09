@@ -4,8 +4,8 @@ import { Asterisk, Columns3, LogOut, MessageSquareText, Settings, Users, Zap } f
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserAvatar } from "@/components/inbox/UserAvatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { inboxSignOut } from "@/lib/inbox/auth";
 import { useInboxProfile } from "@/lib/inbox/profile-context";
 import { ROLE_LABEL } from "@/lib/inbox/types";
@@ -19,17 +19,11 @@ const nav = [
   { to: "/inbox/configuracoes", label: "Configurações", icon: Settings, exact: false },
 ] as const;
 
+const rowClass =
+  "flex h-11 w-full items-center gap-3 rounded-full px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 const itemClass =
   "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
-function Hint({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="right">{label}</TooltipContent>
-    </Tooltip>
-  );
-}
 
 export function InboxShell({ children }: { children: ReactNode }) {
   const profile = useInboxProfile();
@@ -48,50 +42,51 @@ export function InboxShell({ children }: { children: ReactNode }) {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="inbox-theme fixed inset-0 flex gap-3 overflow-hidden bg-background p-3 sm:gap-4 sm:p-4">
-        {/* Sidebar estreita (desktop e tablet) */}
-        <aside className="inbox-surface hidden w-[72px] shrink-0 flex-col items-center rounded-[2rem] py-5 md:flex">
+        {/* Menu lateral com o nome de cada página ao lado do ícone (a partir do tablet) */}
+        <aside className="inbox-surface hidden w-[212px] shrink-0 flex-col rounded-[2rem] px-3 py-5 md:flex">
           <Link
             to="/inbox"
             aria-label="Astarita Inbox"
-            className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground"
+            className="mb-5 flex items-center gap-3 rounded-full px-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Asterisk className="h-6 w-6" strokeWidth={2.5} />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Asterisk className="h-6 w-6" strokeWidth={2.5} />
+            </span>
+            <span className="font-display text-base font-semibold leading-tight">
+              Astarita
+              <span className="block text-xs font-normal text-muted-foreground">Inbox</span>
+            </span>
           </Link>
 
-          <nav
-            className="flex flex-col items-center gap-1.5 rounded-full bg-secondary p-1.5"
-            aria-label="Principal"
-          >
+          <nav className="flex flex-col gap-1" aria-label="Principal">
             {nav.map((item) => (
-              <Hint key={item.to} label={item.label}>
-                <Link
-                  to={item.to}
-                  activeOptions={{ exact: item.exact }}
-                  className={itemClass}
-                  activeProps={{ className: "bg-accent text-primary" }}
-                  aria-label={item.label}
-                >
-                  <item.icon className="h-5 w-5" />
-                </Link>
-              </Hint>
+              <Link
+                key={item.to}
+                to={item.to}
+                activeOptions={{ exact: item.exact }}
+                className={rowClass}
+                activeProps={{ className: "bg-accent text-primary" }}
+              >
+                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </Link>
             ))}
           </nav>
 
-          <div className="mt-auto flex flex-col items-center gap-2">
-            <Hint label="Sair">
-              <button onClick={leave} className={itemClass} aria-label="Sair">
-                <LogOut className="h-5 w-5" />
-              </button>
-            </Hint>
-            <Hint label={`${profile.full_name} · ${ROLE_LABEL[profile.role]}`}>
-              <span>
-                <UserAvatar
-                  name={profile.full_name}
-                  src={profile.avatar_url}
-                  className="h-10 w-10"
-                />
+          <div className="mt-auto flex flex-col gap-2">
+            <button onClick={leave} className={rowClass}>
+              <LogOut className="h-5 w-5 shrink-0" />
+              <span>Sair</span>
+            </button>
+            <div className="flex items-center gap-3 rounded-full bg-secondary px-2 py-1.5">
+              <UserAvatar name={profile.full_name} src={profile.avatar_url} className="h-9 w-9" />
+              <span className="min-w-0 text-xs leading-tight">
+                <span className="block truncate font-medium">{profile.full_name}</span>
+                <span className="block truncate text-muted-foreground">
+                  {ROLE_LABEL[profile.role]}
+                </span>
               </span>
-            </Hint>
+            </div>
           </div>
         </aside>
 
