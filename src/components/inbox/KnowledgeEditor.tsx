@@ -55,7 +55,7 @@ function Section({ row }: { row: KnowledgeRow }) {
   );
 }
 
-/** Base de conhecimento que o Assistente Astarita usa. Quem escreve é a equipe; nada vem preenchido por nós. */
+/** Base de conhecimento que o Assistente de IA usa. Quem escreve é a equipe; nada vem preenchido por nós. */
 export function KnowledgeEditor() {
   const q = useQuery({ queryKey: ["inbox", "knowledge"], queryFn: fetchKnowledge });
   if (q.isPending) return <p className="text-sm text-muted-foreground">Carregando…</p>;

@@ -6,7 +6,7 @@ import { generateSuggestion, isAiKind } from "@/lib/inbox/server/ai-service";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Assistente Astarita. Gera uma SUGESTÃO de texto; nunca envia mensagem ao cliente.
+ * Assistente de IA. Gera uma SUGESTÃO de texto; nunca envia mensagem ao cliente.
  * Exige login do Inbox. A chave da IA fica só no servidor.
  */
 export const Route = createFileRoute("/api/inbox/ai")({
@@ -31,6 +31,8 @@ export const Route = createFileRoute("/api/inbox/ai")({
           )
             return json({ error: "Pedido inválido.", code: "bad_request" }, 400);
           const res = await generateSuggestion(admin, {
+            orgId: who.orgId,
+            orgName: who.member.orgName,
             userId: who.userId,
             conversationId: body.conversationId,
             kind: body.kind,

@@ -1,7 +1,7 @@
 import { db } from "@/lib/inbox/client";
 import { inboxApi, type ApiResult } from "@/lib/inbox/messaging";
 
-/** Ações do Assistente Astarita. A IA só sugere texto: quem envia é sempre a pessoa. */
+/** Ações do Assistente de IA. A IA só sugere texto: quem envia é sempre a pessoa. */
 export type AiKind = "suggest" | "natural" | "shorter" | "professional" | "warmer" | "summary";
 
 export const AI_ACTIONS: { kind: AiKind; label: string; needsText: boolean }[] = [

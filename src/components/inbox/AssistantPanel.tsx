@@ -11,7 +11,7 @@ import type { ConversationRow } from "@/lib/inbox/types";
 type Suggestion = { id: string | null; kind: AiKind; text: string };
 
 /**
- * Assistente Astarita. A IA só SUGERE: o texto aparece aqui para a pessoa editar e só vai para o campo de resposta
+ * Assistente de IA. A IA só SUGERE: o texto aparece aqui para a pessoa editar e só vai para o campo de resposta
  * quando ela clica em "Usar resposta". O envio ao cliente continua sendo sempre manual.
  */
 export function AssistantPanel({
@@ -87,9 +87,9 @@ export function AssistantPanel({
   const disabled = !conversationId || !!notConfigured || !!unavailable || status.isPending;
 
   return (
-    <section className="inbox-surface rounded-[2rem] p-5" aria-label="Assistente Astarita">
+    <section className="inbox-surface rounded-[2rem] p-5" aria-label="Assistente de IA">
       <h2 className="mb-3 flex items-center gap-1.5 font-display text-base font-semibold">
-        Assistente Astarita <Asterisk className="h-4 w-4 text-primary" strokeWidth={3} />
+        Assistente de IA <Asterisk className="h-4 w-4 text-primary" strokeWidth={3} />
       </h2>
       {(notConfigured || unavailable) && (
         <p className="mb-3 flex items-start gap-2 rounded-2xl bg-highlight/70 px-3 py-2 text-xs text-foreground/80">

@@ -52,11 +52,22 @@ export function json(body: unknown, status = 200): Response {
   });
 }
 
-/** Exige um membro ATIVO do Inbox, pelo token do Supabase do Inbox (Authorization: Bearer). */
+/** Quem está fazendo o pedido, já com a empresa (nunca vem do corpo do pedido: vem do banco, pelo token). */
+export type Member = {
+  userId: string;
+  orgId: string;
+  orgName: string;
+  access: "owner" | "admin" | "agent";
+  isPlatformAdmin: boolean;
+};
+
+/** Exige um membro ATIVO de uma empresa ATIVA, pelo token do Supabase do Inbox (Authorization: Bearer). */
 export async function requireMember(
   request: Request,
   admin: AdminClient,
-): Promise<{ ok: true; userId: string } | { ok: false; res: Response }> {
+): Promise<
+  { ok: true; member: Member; userId: string; orgId: string } | { ok: false; res: Response }
+> {
   const header = request.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
   if (!token)
@@ -77,7 +88,7 @@ export async function requireMember(
 
   const profile = await admin
     .from("profiles")
-    .select("id, active")
+    .select("id, active, org_id, access, is_platform_admin, org:organizations!inner(name, status)")
     .eq("id", data.user.id)
     .maybeSingle();
   if (profile.error)
@@ -91,12 +102,49 @@ export async function requireMember(
         503,
       ),
     };
-  if (!profile.data || !profile.data.active)
+  const p = profile.data;
+  if (!p || !p.active)
     return {
       ok: false,
       res: json({ error: "Esta conta não tem acesso ao Inbox.", code: "forbidden" }, 403),
     };
-  return { ok: true, userId: data.user.id };
+  const org = p.org as unknown as { name: string; status: string };
+  if (org.status !== "active")
+    return {
+      ok: false,
+      res: json(
+        {
+          error: "O acesso desta empresa está suspenso. Fale com o suporte.",
+          code: "org_suspended",
+        },
+        403,
+      ),
+    };
+  const access = p.access === "owner" || p.access === "admin" ? p.access : "agent";
+  const member: Member = {
+    userId: p.id,
+    orgId: p.org_id,
+    orgName: org.name,
+    access,
+    isPlatformAdmin: p.is_platform_admin === true,
+  };
+  return { ok: true, member, userId: p.id, orgId: p.org_id };
+}
+
+/** Só dono ou administrador da empresa. */
+export function requireOrgAdmin(
+  r: Extract<Awaited<ReturnType<typeof requireMember>>, { ok: true }>,
+): Response | null {
+  if (r.member.access === "owner" || r.member.access === "admin") return null;
+  return json({ error: "Só o administrador da empresa pode fazer isso.", code: "forbidden" }, 403);
+}
+
+/** Só o dono da plataforma (você, vendedor do sistema). */
+export function requirePlatformAdmin(
+  r: Extract<Awaited<ReturnType<typeof requireMember>>, { ok: true }>,
+): Response | null {
+  if (r.member.isPlatformAdmin) return null;
+  return json({ error: "Acesso restrito ao dono da plataforma.", code: "forbidden" }, 403);
 }
 
 /** Resposta padrão quando o servidor não tem a configuração mínima do Supabase do Inbox. */

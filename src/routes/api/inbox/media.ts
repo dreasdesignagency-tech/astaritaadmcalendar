@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/inbox/media")({
           const body = (await request.json().catch(() => null)) as { messageId?: unknown } | null;
           if (!body || typeof body.messageId !== "string" || !UUID.test(body.messageId))
             return json({ error: "Pedido inválido.", code: "bad_request" }, 400);
-          const res = await getMediaUrl(admin, body.messageId);
+          const res = await getMediaUrl(admin, who.orgId, body.messageId);
           return json(res.body, res.status);
         } catch (e) {
           const cfg = configErrorResponse(e);

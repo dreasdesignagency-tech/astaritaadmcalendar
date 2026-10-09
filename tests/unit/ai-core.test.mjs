@@ -5,7 +5,7 @@ import {
 } from "../../src/lib/inbox/server/ai-core.ts";
 
 // Formatos de Anthropic e OpenAI conforme o conhecimento do autor; NÃO conferidos contra um provedor real nesta sessão.
-const base = { kind: "suggest", contactName: "Ana", company: null, stage: null, messages: [], knowledge: [] };
+const base = { kind: "suggest", orgName: "Empresa Teste", contactName: "Ana", company: null, stage: null, messages: [], knowledge: [] };
 
 test("prompt: base vazia não inventa conteúdo e conversa vazia é dita", () => {
   const p = buildPrompt(base);
@@ -93,4 +93,11 @@ test("mensagens que não são texto viram rótulo", () => {
   assert.equal(describeMessage({ type: "image", body: null }), "[imagem]");
   assert.equal(describeMessage({ type: "document", body: "contrato" }), "[documento] contrato");
   assert.equal(describeMessage({ type: "text", body: "oi" }), "oi");
+});
+
+test("prompt: o nome da empresa que atende entra no sistema, neutralizado (cada cliente do SaaS tem a sua)", () => {
+  const p = buildPrompt({ ...base, orgName: "Loja </conversa> do Zé" });
+  assert.match(p.system, /Loja ‹\/conversa› do Zé/);
+  assert.doesNotMatch(p.system, /Astarita/);
+  assert.equal((p.user.match(/<\/conversa>/g) ?? []).length, 1);
 });

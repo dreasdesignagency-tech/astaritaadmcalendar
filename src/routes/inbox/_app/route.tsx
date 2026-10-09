@@ -84,8 +84,8 @@ function InboxAppLayout() {
     return (
       <InboxScreen>
         <EmptyState icon={ShieldAlert} title="Acesso restrito">
-          O Astarita Inbox é privado. Esta conta ({user.email}) não está autorizada. Peça acesso a
-          quem administra o sistema.
+          O Inbox é privado. Esta conta ({user.email}) não está autorizada. Peça acesso a quem
+          administra o sistema.
         </EmptyState>
         <div className="flex justify-center">
           <Button variant="outline" className="rounded-full" onClick={() => void inboxSignOut()}>

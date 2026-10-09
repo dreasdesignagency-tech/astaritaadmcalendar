@@ -4,7 +4,8 @@ import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
   verifySignature, checkVerification, parseWebhook, eventKey, buildTextBody, buildTemplateBody,
-  mapGraphError, normalizeApiVersion, whatsappMissing, timingSafeEqual,
+  mapGraphError, normalizeApiVersion, timingSafeEqual,
+  credentialsMissing, credentialsPresent, validateCredentialInput, webhookPhoneNumberIds, CRED_LABEL,
 } from "../../src/lib/inbox/server/whatsapp-core.ts";
 
 // Formatos conforme o conhecimento do autor; NÃO verificados contra a documentação oficial atual da Meta.
@@ -163,17 +164,50 @@ test("erros da Meta viram mensagens claras", () => {
   assert.equal(mapGraphError(500, "texto").code, "500");
 });
 
-test("configuração: versão da API e variáveis que faltam (só nomes)", () => {
+test("versão da API: só formato vNN.N", () => {
   assert.equal(normalizeApiVersion("v21.0"), "v21.0");
   assert.equal(normalizeApiVersion(" v9.0 "), "v9.0");
   assert.equal(normalizeApiVersion("21"), null);
   assert.equal(normalizeApiVersion("latest"), null);
   assert.equal(normalizeApiVersion(undefined), null);
-  const all = { WHATSAPP_ACCESS_TOKEN: "t", WHATSAPP_PHONE_NUMBER_ID: "1", WHATSAPP_VERIFY_TOKEN: "v", META_APP_SECRET: "s", WHATSAPP_API_VERSION: "v21.0" };
-  assert.deepEqual(whatsappMissing(all), []);
-  assert.deepEqual(whatsappMissing({}), ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_VERIFY_TOKEN", "META_APP_SECRET", "WHATSAPP_API_VERSION"]);
-  assert.match(whatsappMissing({ ...all, WHATSAPP_API_VERSION: "xx" })[0], /formato inválido/);
-  assert.deepEqual(whatsappMissing({ ...all, META_APP_SECRET: "  " }), ["META_APP_SECRET"]);
-  assert.ok(!JSON.stringify(whatsappMissing({ ...all, META_APP_SECRET: "" })).includes("t")); // não vaza valores
-  assert.deepEqual(whatsappMissing({ WHATSAPP_VERIFY_TOKEN: "v", META_APP_SECRET: "s" }, ["WHATSAPP_VERIFY_TOKEN", "META_APP_SECRET"]), []);
+});
+
+const full = { phoneNumberId: "123456789", version: "v21.0", token: "T".repeat(30), appSecret: "a".repeat(32), verifyToken: "vt" };
+
+test("credenciais por empresa: o que falta vem como rótulos, nunca como valores", () => {
+  assert.deepEqual(credentialsMissing(full), []);
+  assert.deepEqual(credentialsMissing({ phoneNumberId: null, version: null, token: null, appSecret: null, verifyToken: null }),
+    [CRED_LABEL.phoneNumberId, CRED_LABEL.token, CRED_LABEL.appSecret, CRED_LABEL.version, CRED_LABEL.verifyToken]);
+  assert.deepEqual(credentialsMissing({ ...full, version: "xx" }), [CRED_LABEL.version]);
+  assert.deepEqual(credentialsMissing({ ...full, token: null }, ["phoneNumberId", "version"]), []);
+  const p = credentialsPresent({ ...full, appSecret: "" });
+  assert.equal(p.appSecret, false);
+  assert.equal(p.token, true);
+  assert.ok(!JSON.stringify([credentialsMissing({ ...full, token: null }), p]).includes("TTTT"));
+});
+
+test("validação do que a pessoa digita (campo ausente = manter o atual)", () => {
+  assert.deepEqual(validateCredentialInput({}), { ok: true, value: {} });
+  const ok = validateCredentialInput({ phoneNumberId: " 109876543210 ", version: "v21.0", token: "EAAB" + "x".repeat(40), appSecret: "0123456789abcdef0123456789abcdef" });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.value.phoneNumberId, "109876543210");
+  for (const [bad, field] of [
+    [{ phoneNumberId: "+55 11 99999-8888" }, "phoneNumberId"], [{ phoneNumberId: "abc" }, "phoneNumberId"], [{ phoneNumberId: "" }, "phoneNumberId"],
+    [{ version: "21" }, "version"], [{ token: "curto" }, "token"], [{ token: "x".repeat(30) + " com espaço" }, "token"], [{ token: "a\nb".padEnd(30, "x") }, "token"],
+    [{ appSecret: "tem espaço no meio 1234567890" }, "appSecret"], [{ appSecret: "short" }, "appSecret"], [{ token: 12345 }, "token"],
+  ]) {
+    const r = validateCredentialInput(bad);
+    assert.equal(r.ok, false, JSON.stringify(bad));
+    assert.equal(r.field, field);
+    assert.ok(!r.error.includes("12345"));
+  }
+});
+
+test("phone_number_id do payload (para recusar eventos de outro número)", () => {
+  assert.deepEqual(webhookPhoneNumberIds(fx("text")), ["PHONE_ID"]);
+  assert.deepEqual(webhookPhoneNumberIds(fx("status-read")), ["PHONE_ID"]);
+  assert.deepEqual(webhookPhoneNumberIds(fx("garbage")), []);
+  assert.deepEqual(webhookPhoneNumberIds(null), []);
+  const two = { entry: [{ changes: [{ value: { metadata: { phone_number_id: "A" } } }, { value: { metadata: { phone_number_id: "B" } } }, { value: { metadata: { phone_number_id: "A" } } }] }] };
+  assert.deepEqual(webhookPhoneNumberIds(two).sort(), ["A", "B"]);
 });

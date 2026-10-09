@@ -56,7 +56,14 @@ async function callProvider(
 
 export async function generateSuggestion(
   admin: AdminClient,
-  p: { userId: string; conversationId: string; kind: AiKind; text?: string },
+  p: {
+    orgId: string;
+    orgName: string;
+    userId: string;
+    conversationId: string;
+    kind: AiKind;
+    text?: string;
+  },
 ): Promise<Result> {
   const cfg = aiConfig();
   if (!cfg.ok)
@@ -82,6 +89,7 @@ export async function generateSuggestion(
   const recent = await admin
     .from("ai_suggestions")
     .select("id", { count: "exact", head: true })
+    .eq("org_id", p.orgId)
     .eq("created_by", p.userId)
     .gte("created_at", since);
   if (!recent.error && (recent.count ?? 0) >= RATE_PER_MINUTE)
@@ -90,9 +98,36 @@ export async function generateSuggestion(
       body: { error: "Muitos pedidos seguidos. Espere um minuto.", code: "rate_limited" },
     };
 
+  // Limite mensal do plano da empresa (todas as pessoas somadas).
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const [limitRow, usedRow] = await Promise.all([
+    admin.from("organizations").select("ai_monthly_limit").eq("id", p.orgId).single(),
+    admin
+      .from("ai_suggestions")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", p.orgId)
+      .gte("created_at", monthStart.toISOString()),
+  ]);
+  if (limitRow.error || usedRow.error)
+    return {
+      status: 503,
+      body: { error: "Não foi possível conferir o limite do plano.", code: "db_error" },
+    };
+  if ((usedRow.count ?? 0) >= limitRow.data.ai_monthly_limit)
+    return {
+      status: 429,
+      body: {
+        error: "O limite mensal de sugestões da IA do seu plano acabou. Ele volta no mês que vem.",
+        code: "ai_monthly_limit",
+      },
+    };
+
   const conv = await admin
     .from("conversations")
     .select("id, contact:contacts(id, name, company)")
+    .eq("org_id", p.orgId)
     .eq("id", p.conversationId)
     .maybeSingle();
   if (conv.error)
@@ -105,13 +140,15 @@ export async function generateSuggestion(
     admin
       .from("messages")
       .select("direction, type, body, created_at")
+      .eq("org_id", p.orgId)
       .eq("conversation_id", p.conversationId)
       .order("created_at", { ascending: false })
       .limit(HISTORY_LIMIT),
-    admin.from("knowledge_base").select("section, title, content"),
+    admin.from("knowledge_base").select("section, title, content").eq("org_id", p.orgId),
     admin
       .from("opportunities")
       .select("stage:pipeline_stages(name)")
+      .eq("org_id", p.orgId)
       .eq("contact_id", contact.id)
       .maybeSingle(),
   ]);
@@ -126,6 +163,7 @@ export async function generateSuggestion(
 
   const prompt = buildPrompt({
     kind: p.kind,
+    orgName: p.orgName,
     contactName: contact.name,
     company: contact.company,
     stage,
@@ -148,6 +186,7 @@ export async function generateSuggestion(
   const saved = await admin
     .from("ai_suggestions")
     .insert({
+      org_id: p.orgId,
       conversation_id: p.conversationId,
       kind: p.kind,
       content: out.text,

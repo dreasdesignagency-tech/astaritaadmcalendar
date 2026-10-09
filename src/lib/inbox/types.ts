@@ -1,12 +1,30 @@
 export type InboxRole = "director" | "ceo" | "member";
 
+export type InboxAccess = "owner" | "admin" | "agent";
+
+export type InboxOrg = {
+  id: string;
+  name: string;
+  slug: string;
+  plan: "starter" | "pro" | "business";
+  status: "active" | "suspended";
+  max_users: number;
+  ai_monthly_limit: number;
+};
+
 export type InboxProfile = {
   id: string;
   full_name: string;
   role: InboxRole;
   avatar_url: string | null;
   active: boolean;
+  org_id: string;
+  access: InboxAccess;
+  is_platform_admin: boolean;
 };
+
+/** O perfil de quem está logado, já com a empresa. */
+export type MyProfile = InboxProfile & { org: InboxOrg };
 
 export type ConversationStatus = "waiting" | "in_progress" | "resolved";
 
@@ -93,4 +111,21 @@ export const ROLE_LABEL: Record<InboxRole, string> = {
   director: "Diretor Criativo",
   ceo: "CEO",
   member: "Equipe",
+};
+
+export const ACCESS_LABEL: Record<InboxAccess, string> = {
+  owner: "Proprietário",
+  admin: "Administrador",
+  agent: "Atendente",
+};
+
+/** Texto curto sob o nome: o cargo, quando existe, senão o nível de acesso. */
+export function personLabel(p: Pick<InboxProfile, "role" | "access">): string {
+  return p.role === "member" ? ACCESS_LABEL[p.access] : ROLE_LABEL[p.role];
+}
+
+export const PLAN_LABEL: Record<InboxOrg["plan"], string> = {
+  starter: "Starter",
+  pro: "Pro",
+  business: "Business",
 };

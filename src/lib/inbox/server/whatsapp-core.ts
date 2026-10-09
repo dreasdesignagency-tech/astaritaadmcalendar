@@ -425,76 +425,118 @@ export function mapGraphError(
   return { code, kind: "other", message: `A Meta não aceitou o envio (código ${code}).${tail}` };
 }
 
-// ---------------------------------------------------------------- configuração do servidor
-export type WhatsAppEnv = Partial<
-  Record<
-    | "WHATSAPP_ACCESS_TOKEN"
-    | "WHATSAPP_PHONE_NUMBER_ID"
-    | "WHATSAPP_VERIFY_TOKEN"
-    | "META_APP_SECRET"
-    | "WHATSAPP_API_VERSION",
-    string | undefined
-  >
->;
+// ---------------------------------------------------------------- credenciais por empresa
+/** Credenciais do WhatsApp de UMA empresa (já descriptografadas). Só existem no servidor. */
+export type WaCredentials = {
+  phoneNumberId: string | null;
+  version: string | null;
+  token: string | null;
+  appSecret: string | null;
+  verifyToken: string | null;
+};
+export type CredField = keyof WaCredentials;
 
-export const WHATSAPP_REQUIRED = [
-  "WHATSAPP_ACCESS_TOKEN",
-  "WHATSAPP_PHONE_NUMBER_ID",
-  "WHATSAPP_VERIFY_TOKEN",
-  "META_APP_SECRET",
-  "WHATSAPP_API_VERSION",
-] as const;
-
-export type EnvRow = { name: string; scope: "banco" | "whatsapp"; present: boolean; hint: string };
-
-const ENV_HINTS: Record<string, string> = {
-  INBOX_SUPABASE_SERVICE_ROLE_KEY: "Acesso do servidor ao banco do Inbox",
-  WHATSAPP_ACCESS_TOKEN: "Token de acesso permanente da Meta",
-  WHATSAPP_PHONE_NUMBER_ID: "ID do número na Meta (não é o telefone)",
-  WHATSAPP_API_VERSION: "Versão da API, por exemplo v21.0",
-  WHATSAPP_VERIFY_TOKEN: "Texto que você inventa e repete no webhook da Meta",
-  META_APP_SECRET: "Chave secreta do app da Meta (valida a assinatura)",
+export const CRED_LABEL: Record<CredField, string> = {
+  phoneNumberId: "ID do número de telefone",
+  version: "Versão da API",
+  token: "Token de acesso",
+  appSecret: "App Secret",
+  verifyToken: "Verify token",
 };
 
-/** Tabela "o que está definido" para a tela: só nomes e sim/não, nunca valores. */
-export function describeEnv(env: WhatsAppEnv, serviceKeyPresent: boolean): EnvRow[] {
-  const missing = whatsappMissing(env);
-  const rows: EnvRow[] = [
-    {
-      name: "INBOX_SUPABASE_SERVICE_ROLE_KEY",
-      scope: "banco",
-      present: serviceKeyPresent,
-      hint: ENV_HINTS["INBOX_SUPABASE_SERVICE_ROLE_KEY"] ?? "",
-    },
-  ];
-  for (const name of [
-    "WHATSAPP_ACCESS_TOKEN",
-    "WHATSAPP_PHONE_NUMBER_ID",
-    "WHATSAPP_API_VERSION",
-    "WHATSAPP_VERIFY_TOKEN",
-    "META_APP_SECRET",
-  ]) {
-    rows.push({
-      name,
-      scope: "whatsapp",
-      present: !missing.some((m) => m === name || m.startsWith(`${name} `)),
-      hint: ENV_HINTS[name] ?? "",
-    });
-  }
-  return rows;
+/** Quais campos estão preenchidos (sim/não, nunca o valor). A versão precisa ter formato válido. */
+export function credentialsPresent(c: WaCredentials): Record<CredField, boolean> {
+  return {
+    phoneNumberId: !!c.phoneNumberId,
+    version: !!c.version && normalizeApiVersion(c.version) !== null,
+    token: !!c.token,
+    appSecret: !!c.appSecret,
+    verifyToken: !!c.verifyToken,
+  };
 }
 
-/** Quais variáveis faltam (só os nomes; nunca valores). A versão da API precisa ter formato válido. */
-export function whatsappMissing(
-  env: WhatsAppEnv,
-  only: readonly (typeof WHATSAPP_REQUIRED)[number][] = WHATSAPP_REQUIRED,
+/** Rótulos dos campos que faltam, na ordem em que a pessoa preenche. */
+export function credentialsMissing(
+  c: WaCredentials,
+  only: readonly CredField[] = ["phoneNumberId", "token", "appSecret", "version", "verifyToken"],
 ): string[] {
-  const missing: string[] = [];
-  for (const k of only) {
-    const v = (env[k] ?? "").trim();
-    if (!v) missing.push(k);
-    else if (k === "WHATSAPP_API_VERSION" && !normalizeApiVersion(v))
-      missing.push(`${k} (formato inválido; use algo como v21.0)`);
+  const p = credentialsPresent(c);
+  return only.filter((k) => !p[k]).map((k) => CRED_LABEL[k]);
+}
+
+export type CredentialInput = Partial<{
+  phoneNumberId: unknown;
+  version: unknown;
+  token: unknown;
+  appSecret: unknown;
+}>;
+
+/** Valida o que a pessoa digitou. Campo ausente (undefined) significa "manter o que já existe". */
+export function validateCredentialInput(i: CredentialInput):
+  | {
+      ok: true;
+      value: Partial<Record<"phoneNumberId" | "version" | "token" | "appSecret", string>>;
+    }
+  | { ok: false; error: string; field: string } {
+  const value: Partial<Record<"phoneNumberId" | "version" | "token" | "appSecret", string>> = {};
+  const get = (k: keyof CredentialInput) => {
+    const v = i[k];
+    return v === undefined || v === null ? undefined : typeof v === "string" ? v.trim() : "\u0000";
+  };
+  const pid = get("phoneNumberId");
+  if (pid !== undefined) {
+    if (!/^[0-9]{5,30}$/.test(pid))
+      return {
+        ok: false,
+        field: "phoneNumberId",
+        error:
+          "O ID do número é só números (não é o telefone). Copie de WhatsApp > Configuração da API.",
+      };
+    value.phoneNumberId = pid;
   }
-  return missing;
+  const ver = get("version");
+  if (ver !== undefined) {
+    const n = normalizeApiVersion(ver);
+    if (!n)
+      return { ok: false, field: "version", error: "Versão da API inválida. Use algo como v21.0." };
+    value.version = n;
+  }
+  const tok = get("token");
+  if (tok !== undefined) {
+    if (tok.length < 20 || tok.length > 1000 || /\s/.test(tok))
+      return {
+        ok: false,
+        field: "token",
+        error: "Token de acesso inválido. Cole o token inteiro, sem espaços ou quebras de linha.",
+      };
+    value.token = tok;
+  }
+  const sec = get("appSecret");
+  if (sec !== undefined) {
+    if (!/^[A-Za-z0-9]{16,128}$/.test(sec))
+      return {
+        ok: false,
+        field: "appSecret",
+        error:
+          "App Secret inválido. Copie em Configurações do app > Básico > Chave secreta do app.",
+      };
+    value.appSecret = sec;
+  }
+  return { ok: true, value };
+}
+
+/** Ids dos números que aparecem no payload (entry[].changes[].value.metadata.phone_number_id). */
+export function webhookPhoneNumberIds(payload: unknown): string[] {
+  const ids = new Set<string>();
+  if (!isObj(payload)) return [];
+  for (const entry of arr(payload["entry"])) {
+    if (!isObj(entry)) continue;
+    for (const change of arr(entry["changes"])) {
+      if (!isObj(change) || !isObj(change["value"])) continue;
+      const md = (change["value"] as Obj)["metadata"];
+      const id = isObj(md) ? str((md as Obj)["phone_number_id"]) : null;
+      if (id) ids.add(id);
+    }
+  }
+  return [...ids];
 }

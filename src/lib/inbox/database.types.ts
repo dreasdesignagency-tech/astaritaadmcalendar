@@ -1,5 +1,6 @@
 // Tabelas e colunas conferidas contra os tipos gerados pelo banco real em 09/10/2026 (após as migrations 20261009001027 e
-// 20261009001210): mesmas 14 tabelas e colunas. Só as assinaturas das funções inbox_* são mantidas à mão (nomes de argumentos).
+// 20261009001210). ATENÇÃO: organizations, org_whatsapp, org_id, profiles.access/is_platform_admin vêm da migration
+// inbox_multitenant, ainda NÃO aplicada no banco real: foram escritos à mão e precisam ser regerados depois de aplicá-la. Só as assinaturas das funções inbox_* são mantidas à mão (nomes de argumentos).
 // Gerado com o Supabase MCP (generate_typescript_types) a partir do projeto Astarita Inbox (yappbzpayqejqpkfebho).
 // Regerar com: npm run inbox:types.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -14,6 +15,7 @@ export type Database = {
     Tables: {
       ai_suggestions: {
         Row: {
+          org_id: string;
           content: string;
           conversation_id: string;
           created_at: string;
@@ -25,6 +27,7 @@ export type Database = {
           used: boolean;
         };
         Insert: {
+          org_id?: string;
           content: string;
           conversation_id: string;
           created_at?: string;
@@ -36,6 +39,7 @@ export type Database = {
           used?: boolean;
         };
         Update: {
+          org_id?: string;
           content?: string;
           conversation_id?: string;
           created_at?: string;
@@ -65,14 +69,17 @@ export type Database = {
       };
       contact_tags: {
         Row: {
+          org_id: string;
           contact_id: string;
           tag_id: string;
         };
         Insert: {
+          org_id?: string;
           contact_id: string;
           tag_id: string;
         };
         Update: {
+          org_id?: string;
           contact_id?: string;
           tag_id?: string;
         };
@@ -95,6 +102,7 @@ export type Database = {
       };
       contacts: {
         Row: {
+          org_id: string;
           assigned_to: string | null;
           category: string;
           company: string | null;
@@ -107,6 +115,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          org_id?: string;
           assigned_to?: string | null;
           category?: string;
           company?: string | null;
@@ -119,6 +128,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          org_id?: string;
           assigned_to?: string | null;
           category?: string;
           company?: string | null;
@@ -142,6 +152,7 @@ export type Database = {
       };
       conversations: {
         Row: {
+          org_id: string;
           assigned_to: string | null;
           contact_id: string;
           created_at: string;
@@ -154,6 +165,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          org_id?: string;
           assigned_to?: string | null;
           contact_id: string;
           created_at?: string;
@@ -166,6 +178,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          org_id?: string;
           assigned_to?: string | null;
           contact_id?: string;
           created_at?: string;
@@ -196,6 +209,7 @@ export type Database = {
       };
       internal_notes: {
         Row: {
+          org_id: string;
           body: string;
           contact_id: string;
           created_at: string;
@@ -203,6 +217,7 @@ export type Database = {
           id: string;
         };
         Insert: {
+          org_id?: string;
           body: string;
           contact_id: string;
           created_at?: string;
@@ -210,6 +225,7 @@ export type Database = {
           id?: string;
         };
         Update: {
+          org_id?: string;
           body?: string;
           contact_id?: string;
           created_at?: string;
@@ -235,6 +251,7 @@ export type Database = {
       };
       knowledge_base: {
         Row: {
+          org_id: string;
           content: string;
           id: string;
           section: string;
@@ -243,6 +260,7 @@ export type Database = {
           updated_by: string | null;
         };
         Insert: {
+          org_id?: string;
           content?: string;
           id?: string;
           section: string;
@@ -251,6 +269,7 @@ export type Database = {
           updated_by?: string | null;
         };
         Update: {
+          org_id?: string;
           content?: string;
           id?: string;
           section?: string;
@@ -270,6 +289,7 @@ export type Database = {
       };
       messages: {
         Row: {
+          org_id: string;
           body: string | null;
           client_token: string | null;
           conversation_id: string;
@@ -289,6 +309,7 @@ export type Database = {
           wa_message_id: string | null;
         };
         Insert: {
+          org_id?: string;
           body?: string | null;
           client_token?: string | null;
           conversation_id: string;
@@ -308,6 +329,7 @@ export type Database = {
           wa_message_id?: string | null;
         };
         Update: {
+          org_id?: string;
           body?: string | null;
           client_token?: string | null;
           conversation_id?: string;
@@ -352,6 +374,7 @@ export type Database = {
       };
       opportunities: {
         Row: {
+          org_id: string;
           assigned_to: string | null;
           contact_id: string;
           created_at: string;
@@ -363,6 +386,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          org_id?: string;
           assigned_to?: string | null;
           contact_id: string;
           created_at?: string;
@@ -374,6 +398,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          org_id?: string;
           assigned_to?: string | null;
           contact_id?: string;
           created_at?: string;
@@ -408,8 +433,89 @@ export type Database = {
           },
         ];
       };
+      organizations: {
+        Row: {
+          ai_monthly_limit: number;
+          created_at: string;
+          id: string;
+          max_users: number;
+          name: string;
+          plan: string;
+          slug: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          ai_monthly_limit?: number;
+          created_at?: string;
+          id?: string;
+          max_users?: number;
+          name: string;
+          plan?: string;
+          slug: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          ai_monthly_limit?: number;
+          created_at?: string;
+          id?: string;
+          max_users?: number;
+          name?: string;
+          plan?: string;
+          slug?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      org_whatsapp: {
+        Row: {
+          access_token_enc: string | null;
+          api_version: string | null;
+          app_secret_enc: string | null;
+          connected_at: string | null;
+          org_id: string;
+          phone_number_id: string | null;
+          updated_at: string;
+          verify_token_enc: string | null;
+          webhook_key: string;
+        };
+        Insert: {
+          access_token_enc?: string | null;
+          api_version?: string | null;
+          app_secret_enc?: string | null;
+          connected_at?: string | null;
+          org_id: string;
+          phone_number_id?: string | null;
+          updated_at?: string;
+          verify_token_enc?: string | null;
+          webhook_key: string;
+        };
+        Update: {
+          access_token_enc?: string | null;
+          api_version?: string | null;
+          app_secret_enc?: string | null;
+          connected_at?: string | null;
+          org_id?: string;
+          phone_number_id?: string | null;
+          updated_at?: string;
+          verify_token_enc?: string | null;
+          webhook_key?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "org_whatsapp_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       pipeline_stages: {
         Row: {
+          org_id: string;
           id: string;
           is_lost: boolean;
           is_won: boolean;
@@ -418,6 +524,7 @@ export type Database = {
           slug: string;
         };
         Insert: {
+          org_id: string;
           id?: string;
           is_lost?: boolean;
           is_won?: boolean;
@@ -426,6 +533,7 @@ export type Database = {
           slug: string;
         };
         Update: {
+          org_id?: string;
           id?: string;
           is_lost?: boolean;
           is_won?: boolean;
@@ -437,6 +545,9 @@ export type Database = {
       };
       profiles: {
         Row: {
+          org_id: string;
+          access: string;
+          is_platform_admin: boolean;
           active: boolean;
           avatar_url: string | null;
           created_at: string;
@@ -446,6 +557,9 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          org_id: string;
+          access?: string;
+          is_platform_admin?: boolean;
           active?: boolean;
           avatar_url?: string | null;
           created_at?: string;
@@ -455,6 +569,9 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          org_id?: string;
+          access?: string;
+          is_platform_admin?: boolean;
           active?: boolean;
           avatar_url?: string | null;
           created_at?: string;
@@ -463,10 +580,19 @@ export type Database = {
           role?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "profiles_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       quick_replies: {
         Row: {
+          org_id: string;
           body: string;
           category: string;
           created_at: string;
@@ -476,6 +602,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          org_id?: string;
           body: string;
           category: string;
           created_at?: string;
@@ -485,6 +612,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          org_id?: string;
           body?: string;
           category?: string;
           created_at?: string;
@@ -505,6 +633,7 @@ export type Database = {
       };
       reminders: {
         Row: {
+          org_id: string;
           assigned_to: string | null;
           contact_id: string;
           created_at: string;
@@ -516,6 +645,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          org_id?: string;
           assigned_to?: string | null;
           contact_id: string;
           created_at?: string;
@@ -527,6 +657,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          org_id?: string;
           assigned_to?: string | null;
           contact_id?: string;
           created_at?: string;
@@ -563,18 +694,21 @@ export type Database = {
       };
       tags: {
         Row: {
+          org_id: string;
           color: string;
           created_at: string;
           id: string;
           name: string;
         };
         Insert: {
+          org_id?: string;
           color?: string;
           created_at?: string;
           id?: string;
           name: string;
         };
         Update: {
+          org_id?: string;
           color?: string;
           created_at?: string;
           id?: string;
@@ -584,6 +718,7 @@ export type Database = {
       };
       webhook_events: {
         Row: {
+          org_id: string | null;
           created_at: string;
           error: string | null;
           event_key: string | null;
@@ -594,6 +729,7 @@ export type Database = {
           signature_valid: boolean;
         };
         Insert: {
+          org_id?: string | null;
           created_at?: string;
           error?: string | null;
           event_key?: string | null;
@@ -604,6 +740,7 @@ export type Database = {
           signature_valid: boolean;
         };
         Update: {
+          org_id?: string | null;
           created_at?: string;
           error?: string | null;
           event_key?: string | null;
@@ -621,9 +758,16 @@ export type Database = {
     };
     Functions: {
       is_inbox_member: { Args: never; Returns: boolean };
-      // Funções do backend (migration inbox_whatsapp_notes, ainda não aplicada): só service_role executa.
+      current_org_id: { Args: never; Returns: string };
+      is_org_admin: { Args: never; Returns: boolean };
+      // Funções do backend (migrations inbox_whatsapp_notes e inbox_multitenant): só service_role executa.
+      inbox_create_org: {
+        Args: { p_name: string; p_slug: string; p_plan?: string };
+        Returns: string;
+      };
       inbox_ingest_inbound: {
         Args: {
+          p_org: string;
           p_wa_id: string;
           p_profile_name: string | null;
           p_wa_message_id: string;
@@ -637,6 +781,7 @@ export type Database = {
       };
       inbox_ingest_echo: {
         Args: {
+          p_org: string;
           p_to_wa_id: string;
           p_wa_message_id: string;
           p_type: string;
@@ -649,6 +794,7 @@ export type Database = {
       };
       inbox_apply_status: {
         Args: {
+          p_org: string;
           p_wa_message_id: string;
           p_status: string;
           p_at: string;

@@ -1,5 +1,5 @@
 /**
- * Núcleo do Assistente Astarita: montagem do prompt e conversa com o provedor de IA. Funções puras, sem imports.
+ * Núcleo do Assistente de IA: montagem do prompt e conversa com o provedor de IA. Funções puras, sem imports.
  *
  * A IA só SUGERE texto. Nada aqui envia mensagem: quem decide e envia é a pessoa, pelo campo de resposta.
  * Falas do cliente entram no prompt como DADOS (dentro de <conversa>), nunca como instrução.
@@ -23,6 +23,8 @@ export type PromptMessage = { direction: "in" | "out"; text: string };
 
 export type PromptInput = {
   kind: AiKind;
+  /** Nome da empresa que está atendendo (cada cliente do sistema tem a sua). */
+  orgName: string;
   contactName: string;
   company: string | null;
   stage: string | null;
@@ -34,7 +36,7 @@ export type PromptInput = {
 
 const INSTRUCTION: Record<AiKind, string> = {
   suggest:
-    "Escreva a próxima resposta da Astarita para o cliente, pronta para ser enviada pelo WhatsApp. Responda só ao que o cliente perguntou ou precisa agora.",
+    "Escreva a próxima resposta da empresa para o cliente, pronta para ser enviada pelo WhatsApp. Responda só ao que o cliente perguntou ou precisa agora.",
   natural:
     "Reescreva o texto abaixo de um jeito mais natural e conversacional, mantendo o sentido.",
   shorter: "Reescreva o texto abaixo de forma mais curta, mantendo o essencial.",
@@ -44,7 +46,9 @@ const INSTRUCTION: Record<AiKind, string> = {
     "Resuma a conversa para quem vai assumir o atendimento: o que o cliente quer, o que já foi combinado e o próximo passo. Em tópicos curtos, sem enfeite.",
 };
 
-const SYSTEM = `Você é o Assistente Astarita, ajudante da equipe da Astarita Creative Studio no atendimento por WhatsApp.
+const systemPrompt = (
+  company: string,
+) => `Você é o assistente de IA da equipe da empresa ${company} no atendimento por WhatsApp.
 Escreva em português do Brasil, de forma natural, próxima e objetiva. Não use travessões. Não use frases de efeito nem linguagem de propaganda.
 Use SOMENTE as informações da base de conhecimento e da conversa. Se faltar um dado (preço, prazo, condição, disponibilidade), NÃO invente: diga que vai confirmar com a equipe ou faça uma pergunta ao cliente.
 Nunca prometa valores, prazos ou condições que não estejam na base de conhecimento.
@@ -69,12 +73,12 @@ export function buildPrompt(i: PromptInput): { system: string; user: string } {
     `<cliente>\nNome: ${neutralize(i.contactName)}${i.company ? `\nEmpresa: ${neutralize(i.company)}` : ""}${i.stage ? `\nEtapa no funil: ${neutralize(i.stage)}` : ""}\n</cliente>`,
   );
   const convo = i.messages
-    .map((m) => `${m.direction === "in" ? "Cliente" : "Astarita"}: ${neutralize(m.text)}`)
+    .map((m) => `${m.direction === "in" ? "Cliente" : "Empresa"}: ${neutralize(m.text)}`)
     .join("\n");
   parts.push(`<conversa>\n${convo || "(sem mensagens ainda)"}\n</conversa>`);
   if (REWRITE_KINDS.includes(i.kind)) parts.push(`<texto>\n${neutralize(i.text ?? "")}\n</texto>`);
   parts.push(INSTRUCTION[i.kind]);
-  return { system: SYSTEM, user: parts.join("\n\n") };
+  return { system: systemPrompt(neutralize(i.orgName)), user: parts.join("\n\n") };
 }
 
 // ---------------------------------------------------------------- provedores

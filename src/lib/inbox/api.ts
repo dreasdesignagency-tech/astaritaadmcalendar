@@ -1,5 +1,5 @@
 import { db } from "@/lib/inbox/client";
-import type { ConversationRow, InboxProfile, PipelineStage } from "./types";
+import type { ConversationRow, InboxProfile, MyProfile, PipelineStage } from "./types";
 
 /**
  * As consultas do Inbox usam o cliente do projeto Supabase do Inbox (ver ./client.ts).
@@ -18,20 +18,22 @@ export function isMissingSchemaError(error: unknown): boolean {
   );
 }
 
-export async function fetchMyProfile(userId: string): Promise<InboxProfile | null> {
+export async function fetchMyProfile(userId: string): Promise<MyProfile | null> {
   const { data, error } = await db
     .from("profiles")
-    .select("id, full_name, role, avatar_url, active")
+    .select(
+      "id, full_name, role, avatar_url, active, org_id, access, is_platform_admin, org:organizations!inner(id, name, slug, plan, status, max_users, ai_monthly_limit)",
+    )
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
-  return (data as InboxProfile | null) ?? null;
+  return (data as unknown as MyProfile | null) ?? null;
 }
 
 export async function fetchTeam(): Promise<InboxProfile[]> {
   const { data, error } = await db
     .from("profiles")
-    .select("id, full_name, role, avatar_url, active")
+    .select("id, full_name, role, avatar_url, active, org_id, access, is_platform_admin")
     .order("full_name");
   if (error) throw error;
   return (data ?? []) as InboxProfile[];

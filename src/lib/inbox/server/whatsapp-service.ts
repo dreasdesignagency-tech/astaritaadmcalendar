@@ -1,16 +1,18 @@
 import type { Json } from "@/lib/inbox/database.types";
 import type { ChannelStatus } from "@/lib/inbox/messaging";
 import type { AdminClient } from "@/lib/inbox/server/admin";
-import { aiEnvStatus, env, graphBase, sendConfig, whatsappEnv } from "@/lib/inbox/server/env";
+import { aiEnvStatus, graphBase } from "@/lib/inbox/server/env";
+import { loadOrgWhatsApp, markConnected, type OrgWhatsApp } from "@/lib/inbox/server/org";
 import {
   buildTemplateBody,
-  describeEnv,
   buildTextBody,
+  credentialsMissing,
+  credentialsPresent,
   eventKey,
   mapGraphError,
   parseWebhook,
   verifySignature,
-  whatsappMissing,
+  webhookPhoneNumberIds,
   type EchoMessage,
   type InboundMessage,
   type StatusEvent,
@@ -53,6 +55,7 @@ type Step = "ok" | "defer";
  */
 async function track(
   admin: AdminClient,
+  orgId: string,
   key: string,
   payload: unknown,
   fn: () => Promise<Step>,
@@ -60,6 +63,7 @@ async function track(
   const ins = await admin
     .from("webhook_events")
     .insert({
+      org_id: orgId,
       provider: "whatsapp",
       event_key: key,
       signature_valid: true,
@@ -73,6 +77,7 @@ async function track(
     const ex = await admin
       .from("webhook_events")
       .select("id, processed_at")
+      .eq("org_id", orgId)
       .eq("provider", "whatsapp")
       .eq("event_key", key)
       .single();
@@ -103,8 +108,9 @@ async function track(
   }
 }
 
-async function ingestMessage(admin: AdminClient, m: InboundMessage): Promise<Step> {
+async function ingestMessage(admin: AdminClient, orgId: string, m: InboundMessage): Promise<Step> {
   const { data, error } = await admin.rpc("inbox_ingest_inbound", {
+    p_org: orgId,
     p_wa_id: m.waId,
     p_profile_name: m.profileName,
     p_wa_message_id: m.waMessageId,
@@ -121,16 +127,22 @@ async function ingestMessage(admin: AdminClient, m: InboundMessage): Promise<Ste
     const target = await admin
       .from("messages")
       .select("id")
+      .eq("org_id", orgId)
       .eq("wa_message_id", m.contextWaId)
       .maybeSingle();
     if (target.data)
-      await admin.from("messages").update({ reply_to_id: target.data.id }).eq("id", r.message_id);
+      await admin
+        .from("messages")
+        .update({ reply_to_id: target.data.id })
+        .eq("id", r.message_id)
+        .eq("org_id", orgId);
   }
   return "ok";
 }
 
-async function ingestEcho(admin: AdminClient, m: EchoMessage): Promise<Step> {
+async function ingestEcho(admin: AdminClient, orgId: string, m: EchoMessage): Promise<Step> {
   const { error } = await admin.rpc("inbox_ingest_echo", {
+    p_org: orgId,
     p_to_wa_id: m.toWaId,
     p_wa_message_id: m.waMessageId,
     p_type: m.type,
@@ -143,8 +155,9 @@ async function ingestEcho(admin: AdminClient, m: EchoMessage): Promise<Step> {
   return "ok";
 }
 
-async function applyStatus(admin: AdminClient, s: StatusEvent): Promise<Step> {
+async function applyStatus(admin: AdminClient, orgId: string, s: StatusEvent): Promise<Step> {
   const { data, error } = await admin.rpc("inbox_apply_status", {
+    p_org: orgId,
     p_wa_message_id: s.waMessageId,
     p_status: s.status,
     p_at: s.sentAt,
@@ -157,6 +170,7 @@ async function applyStatus(admin: AdminClient, s: StatusEvent): Promise<Step> {
     const exists = await admin
       .from("messages")
       .select("id")
+      .eq("org_id", orgId)
       .eq("wa_message_id", s.waMessageId)
       .maybeSingle();
     if (!exists.data) return "defer";
@@ -166,19 +180,21 @@ async function applyStatus(admin: AdminClient, s: StatusEvent): Promise<Step> {
 
 export async function handleWebhookPost(
   admin: AdminClient,
+  org: OrgWhatsApp,
   raw: string,
   signature: string | null,
 ): Promise<Result> {
-  const secrets = (env("META_APP_SECRET") ?? "")
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-  if (secrets.length === 0)
-    return { status: 503, body: { error: "META_APP_SECRET não configurado no servidor." } };
+  const secret = org.creds.appSecret;
+  if (org.undecryptable || !secret)
+    return {
+      status: 503,
+      body: { error: "WhatsApp desta empresa ainda não foi configurado (App Secret)." },
+    };
 
-  if (!(await verifySignature(raw, signature, secrets))) {
+  if (!(await verifySignature(raw, signature, [secret]))) {
     // Não guarda o conteúdo de quem não provou ser a Meta: só o tamanho.
     await admin.from("webhook_events").insert({
+      org_id: org.orgId,
       provider: "whatsapp",
       signature_valid: false,
       payload: { rejected: true, bytes: raw.length },
@@ -194,6 +210,12 @@ export async function handleWebhookPost(
     return { status: 400, body: { error: "JSON inválido" } };
   }
 
+  // Assinatura válida, mas o evento é de OUTRO número (ex.: app da Meta compartilhado): não é desta empresa.
+  const ids = webhookPhoneNumberIds(payload);
+  if (!org.creds.phoneNumberId || ids.some((id) => id !== org.creds.phoneNumberId))
+    return { status: 200, body: { ok: true, ignored: "outro número" } };
+
+  const orgId = org.orgId;
   const parsed = parseWebhook(payload);
   const counts = {
     messages: 0,
@@ -215,18 +237,22 @@ export async function handleWebhookPost(
   try {
     for (const m of parsed.messages)
       bump(
-        await track(admin, eventKey.message(m.waMessageId), m, () => ingestMessage(admin, m)),
+        await track(admin, orgId, eventKey.message(m.waMessageId), m, () =>
+          ingestMessage(admin, orgId, m),
+        ),
         "messages",
       );
     for (const e of parsed.echoes)
       bump(
-        await track(admin, eventKey.echo(e.waMessageId), e, () => ingestEcho(admin, e)),
+        await track(admin, orgId, eventKey.echo(e.waMessageId), e, () =>
+          ingestEcho(admin, orgId, e),
+        ),
         "echoes",
       );
     for (const s of parsed.statuses)
       bump(
-        await track(admin, eventKey.status(s.waMessageId, s.status), s, () =>
-          applyStatus(admin, s),
+        await track(admin, orgId, eventKey.status(s.waMessageId, s.status), s, () =>
+          applyStatus(admin, orgId, s),
         ),
         "statuses",
       );
@@ -241,10 +267,11 @@ export async function handleWebhookPost(
 }
 
 /** Status que chegaram antes de a mensagem ter o id da Meta gravado: aplica na ordem em que a Meta os enviou. */
-async function reapplyDeferredStatuses(admin: AdminClient, waMessageId: string) {
+async function reapplyDeferredStatuses(admin: AdminClient, orgId: string, waMessageId: string) {
   const { data } = await admin
     .from("webhook_events")
     .select("id, payload")
+    .eq("org_id", orgId)
     .eq("provider", "whatsapp")
     .is("processed_at", null)
     .like("event_key", `st:${waMessageId}:%`);
@@ -252,6 +279,7 @@ async function reapplyDeferredStatuses(admin: AdminClient, waMessageId: string) 
     const s = row.payload as unknown as StatusEvent;
     try {
       await admin.rpc("inbox_apply_status", {
+        p_org: orgId,
         p_wa_message_id: s.waMessageId,
         p_status: s.status,
         p_at: s.sentAt,
@@ -270,13 +298,20 @@ async function reapplyDeferredStatuses(admin: AdminClient, waMessageId: string) 
 
 // ---------------------------------------------------------------- envio
 export type SendInput = {
+  orgId: string;
   userId: string;
   messageId: string;
   retry: boolean;
   template: { name: string; language: string; variables: string[] } | null;
 };
 
-async function fail(admin: AdminClient, messageId: string, code: string, message: string) {
+async function fail(
+  admin: AdminClient,
+  orgId: string,
+  messageId: string,
+  code: string,
+  message: string,
+) {
   await admin
     .from("messages")
     .update({
@@ -286,6 +321,7 @@ async function fail(admin: AdminClient, messageId: string, code: string, message
       status_updated_at: now(),
     })
     .eq("id", messageId)
+    .eq("org_id", orgId)
     .is("wa_message_id", null);
 }
 
@@ -296,6 +332,7 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
       "id, conversation_id, direction, type, body, status, sent_by, wa_message_id, reply_to_id, status_updated_at",
     )
     .eq("id", input.messageId)
+    .eq("org_id", input.orgId)
     .maybeSingle();
   if (msg.error)
     return {
@@ -322,26 +359,37 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
       body: { error: "Informe o modelo aprovado a enviar.", code: "template_required" },
     };
 
-  const cfg = sendConfig();
-  if (!cfg.ok) {
-    await fail(admin, m.id, "not_configured", "WhatsApp não configurado no servidor.");
+  const wa = await loadOrgWhatsApp(admin, input.orgId);
+  const sendMissing = wa
+    ? credentialsMissing(wa.creds, ["phoneNumberId", "token", "version"])
+    : ["ID do número de telefone", "Token de acesso", "Versão da API"];
+  if (!wa || wa.undecryptable || sendMissing.length) {
+    await fail(admin, input.orgId, m.id, "not_configured", "WhatsApp não conectado nesta conta.");
     return {
       status: 503,
       body: {
-        error: `WhatsApp não configurado no servidor (faltam: ${cfg.missing.join(", ")}).`,
+        error: wa?.undecryptable
+          ? "As credenciais do WhatsApp não puderam ser lidas. Salve-as de novo em Configurações."
+          : `WhatsApp não conectado. Falta em Configurações: ${sendMissing.join(", ")}.`,
         code: "not_configured",
       },
     };
   }
+  const cfg = {
+    token: wa.creds.token as string,
+    phoneNumberId: wa.creds.phoneNumberId as string,
+    version: wa.creds.version as string,
+  };
 
   const conv = await admin
     .from("conversations")
-    .select("id, last_inbound_at, assigned_to, status, contact:contacts!inner(phone)")
+    .select("id, contact_id, last_inbound_at, assigned_to, status, contact:contacts!inner(phone)")
     .eq("id", m.conversation_id)
+    .eq("org_id", input.orgId)
     .single();
   const phone = (conv.data?.contact as unknown as { phone: string | null } | undefined)?.phone;
   if (conv.error || !conv.data || !phone) {
-    await fail(admin, m.id, "no_phone", "Contato sem telefone.");
+    await fail(admin, input.orgId, m.id, "no_phone", "Contato sem telefone.");
     return {
       status: 422,
       body: { error: "Este contato não tem telefone para envio.", code: "no_phone" },
@@ -351,7 +399,7 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
   // Regra da Meta: mensagem livre só até 24h depois da última mensagem do cliente. O servidor confere de novo.
   if (m.type === "text" && !windowState(conv.data.last_inbound_at).open) {
     const text = "Fora da janela de 24 horas: a Meta só permite enviar um modelo aprovado agora.";
-    await fail(admin, m.id, "window_closed", text);
+    await fail(admin, input.orgId, m.id, "window_closed", text);
     return { status: 409, body: { error: text, code: "window_closed" } };
   }
 
@@ -361,6 +409,7 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
       .from("messages")
       .update({ status: "pending", status_updated_at: null, error_code: null, error_message: null })
       .eq("id", m.id)
+      .eq("org_id", input.orgId)
       .is("wa_message_id", null)
       .in("status", ["failed", "pending"]);
   }
@@ -368,6 +417,7 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
     .from("messages")
     .update({ status_updated_at: now() })
     .eq("id", m.id)
+    .eq("org_id", input.orgId)
     .eq("status", "pending")
     .is("status_updated_at", null)
     .is("wa_message_id", null)
@@ -386,6 +436,7 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
       .from("messages")
       .select("wa_message_id")
       .eq("id", m.reply_to_id)
+      .eq("org_id", input.orgId)
       .maybeSingle();
     replyWa = target.data?.wa_message_id ?? null;
   }
@@ -418,8 +469,9 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
         error_code: null,
         error_message: null,
       })
-      .eq("id", m.id);
-    await reapplyDeferredStatuses(admin, waId);
+      .eq("id", m.id)
+      .eq("org_id", input.orgId);
+    await reapplyDeferredStatuses(admin, input.orgId, waId);
     const text = (m.body ?? "").slice(0, 140);
     await admin
       .from("conversations")
@@ -429,20 +481,13 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
         assigned_to: conv.data.assigned_to ?? input.userId,
         status: "in_progress",
       })
-      .eq("id", m.conversation_id);
+      .eq("id", m.conversation_id)
+      .eq("org_id", input.orgId);
     await admin
       .from("opportunities")
       .update({ last_interaction_at: now() })
-      .eq(
-        "contact_id",
-        (
-          await admin
-            .from("conversations")
-            .select("contact_id")
-            .eq("id", m.conversation_id)
-            .single()
-        ).data?.contact_id ?? "",
-      );
+      .eq("org_id", input.orgId)
+      .eq("contact_id", conv.data.contact_id);
     return { status: 200, body: { ok: true, waMessageId: waId } };
   }
 
@@ -454,7 +499,7 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
           "Não foi possível falar com a Meta (rede ou tempo esgotado). Nada foi enviado; tente de novo.",
       }
     : mapGraphError(res.status, res.body);
-  await fail(admin, m.id, err.code, err.message);
+  await fail(admin, input.orgId, m.id, err.code, err.message);
   return {
     status: err.kind === "window" ? 409 : res.network ? 504 : 502,
     body: { error: err.message, code: err.kind === "window" ? "window_closed" : err.code },
@@ -462,13 +507,17 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
 }
 
 // ---------------------------------------------------------------- estado dos canais
-/** Atividade do webhook: só datas e contagem, nunca o conteúdo dos eventos. */
-async function webhookActivity(admin: AdminClient): Promise<ChannelStatus["webhook"]> {
+/** Atividade do webhook desta empresa: só datas e contagem, nunca o conteúdo dos eventos. */
+async function webhookActivity(
+  admin: AdminClient,
+  orgId: string,
+): Promise<ChannelStatus["webhook"]> {
   const since = new Date(Date.now() - 24 * 3600_000).toISOString();
   const [ok, bad] = await Promise.all([
     admin
       .from("webhook_events")
       .select("created_at")
+      .eq("org_id", orgId)
       .eq("provider", "whatsapp")
       .eq("signature_valid", true)
       .order("created_at", { ascending: false })
@@ -476,6 +525,7 @@ async function webhookActivity(admin: AdminClient): Promise<ChannelStatus["webho
     admin
       .from("webhook_events")
       .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
       .eq("provider", "whatsapp")
       .eq("signature_valid", false)
       .gte("created_at", since),
@@ -484,32 +534,43 @@ async function webhookActivity(admin: AdminClient): Promise<ChannelStatus["webho
   return { lastValidAt: ok.data?.[0]?.created_at ?? null, invalidLast24h: bad.count ?? 0 };
 }
 
-let waCache: { at: number; key: string; value: ChannelStatus["whatsapp"] } | null = null;
+const waCache = new Map<string, { at: number; sig: string; value: ChannelStatus["whatsapp"] }>();
 
-export async function channelStatus(admin?: AdminClient): Promise<ChannelStatus> {
-  const webhook = admin ? await webhookActivity(admin) : null;
-  const e = whatsappEnv();
-  const missing = whatsappMissing(e);
+export async function channelStatus(admin: AdminClient, orgId: string): Promise<ChannelStatus> {
+  const [wa, webhook] = await Promise.all([
+    loadOrgWhatsApp(admin, orgId),
+    webhookActivity(admin, orgId),
+  ]);
+  const ai = aiEnvStatus();
+  const creds = wa?.creds ?? {
+    phoneNumberId: null,
+    version: null,
+    token: null,
+    appSecret: null,
+    verifyToken: null,
+  };
+  const fields = credentialsPresent(creds);
+  const missing = credentialsMissing(creds);
   const base: ChannelStatus["whatsapp"] = {
-    configured: missing.length === 0,
-    missing,
+    configured: missing.length === 0 && !wa?.undecryptable,
+    missing: wa?.undecryptable ? ["Credenciais ilegíveis: salve-as de novo"] : missing,
+    fields,
     reachable: null,
     phone: null,
     verifiedName: null,
     error: null,
   };
-  const ai = aiEnvStatus();
-  const cfg = sendConfig();
-  const envRows = describeEnv(e, true);
-  if (!base.configured || !cfg.ok) return { whatsapp: base, ai, webhook, envRows };
+  if (!base.configured || !wa) return { whatsapp: base, ai, webhook };
 
-  const key = `${cfg.phoneNumberId}|${cfg.version}|${cfg.token.length}`;
-  if (waCache && waCache.key === key && Date.now() - waCache.at < 60_000)
-    return { whatsapp: waCache.value, ai, webhook, envRows };
+  // Cache curto por empresa, trocado quando qualquer credencial muda (a assinatura usa só tamanhos e o id público).
+  const sig = `${creds.phoneNumberId}|${creds.version}|${creds.token?.length}|${creds.appSecret?.length}`;
+  const hit = waCache.get(orgId);
+  if (hit && hit.sig === sig && Date.now() - hit.at < 60_000)
+    return { whatsapp: hit.value, ai, webhook };
 
   const res = await graph(
-    `/${cfg.version}/${cfg.phoneNumberId}?fields=display_phone_number,verified_name`,
-    cfg.token,
+    `/${creds.version}/${creds.phoneNumberId}?fields=display_phone_number,verified_name`,
+    creds.token as string,
     {},
     8_000,
   );
@@ -527,8 +588,14 @@ export async function channelStatus(admin?: AdminClient): Promise<ChannelStatus>
   } else {
     value = { ...base, reachable: false, error: mapGraphError(res.status, res.body).message };
   }
-  waCache = { at: Date.now(), key, value };
-  return { whatsapp: value, ai, webhook, envRows };
+  waCache.set(orgId, { at: Date.now(), sig, value });
+  if (value.reachable !== null) await markConnected(admin, orgId, value.reachable);
+  return { whatsapp: value, ai, webhook };
+}
+
+/** Esquece o resultado guardado (usado logo depois de salvar novas credenciais). */
+export function forgetChannelCache(orgId: string) {
+  waCache.delete(orgId);
 }
 
 // ---------------------------------------------------------------- mídia
@@ -549,11 +616,16 @@ const EXT: Record<string, string> = {
 const MAX_MEDIA_BYTES = 50 * 1024 * 1024;
 
 /** Devolve uma URL assinada de curta duração. Baixa da Meta para o bucket privado na primeira vez. */
-export async function getMediaUrl(admin: AdminClient, messageId: string): Promise<Result> {
+export async function getMediaUrl(
+  admin: AdminClient,
+  orgId: string,
+  messageId: string,
+): Promise<Result> {
   const msg = await admin
     .from("messages")
     .select("id, conversation_id, type, media_path, media_mime, wa_media_id")
     .eq("id", messageId)
+    .eq("org_id", orgId)
     .maybeSingle();
   if (msg.error)
     return { status: 503, body: { error: "Não foi possível ler a mensagem.", code: "db_error" } };
@@ -564,15 +636,19 @@ export async function getMediaUrl(admin: AdminClient, messageId: string): Promis
   let path = m.media_path;
   let mime = m.media_mime;
   if (!path) {
-    const cfg = sendConfig();
-    if (!cfg.ok)
+    const wa = await loadOrgWhatsApp(admin, orgId);
+    const miss = wa
+      ? credentialsMissing(wa.creds, ["phoneNumberId", "token", "version"])
+      : ["Token de acesso"];
+    if (!wa || wa.undecryptable || miss.length)
       return {
         status: 503,
         body: {
-          error: `WhatsApp não configurado no servidor (faltam: ${cfg.missing.join(", ")}).`,
+          error: `WhatsApp não conectado. Falta em Configurações: ${miss.join(", ")}.`,
           code: "not_configured",
         },
       };
+    const cfg = { token: wa.creds.token as string, version: wa.creds.version as string };
     const meta = await graph(`/${cfg.version}/${m.wa_media_id}`, cfg.token, {}, 10_000);
     const info = meta.body as { url?: string; mime_type?: string; file_size?: number } | null;
     if (!meta.ok || !info?.url) {
@@ -617,7 +693,7 @@ export async function getMediaUrl(admin: AdminClient, messageId: string): Promis
     mime =
       (info.mime_type ?? m.media_mime ?? "application/octet-stream").split(";")[0]?.trim() ??
       "application/octet-stream";
-    path = `${m.conversation_id}/${m.id}${EXT[mime] ?? ""}`;
+    path = `${orgId}/${m.conversation_id}/${m.id}${EXT[mime] ?? ""}`;
     const up = await admin.storage
       .from("inbox-media")
       .upload(path, bytes, { contentType: mime, upsert: true });
@@ -626,7 +702,11 @@ export async function getMediaUrl(admin: AdminClient, messageId: string): Promis
         status: 503,
         body: { error: "Não foi possível guardar o anexo.", code: "storage_error" },
       };
-    await admin.from("messages").update({ media_path: path, media_mime: mime }).eq("id", m.id);
+    await admin
+      .from("messages")
+      .update({ media_path: path, media_mime: mime })
+      .eq("id", m.id)
+      .eq("org_id", orgId);
   }
 
   const signed = await admin.storage.from("inbox-media").createSignedUrl(path, 300);

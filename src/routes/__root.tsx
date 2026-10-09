@@ -80,12 +80,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Astarita | Planejamento de conteúdo" },
+      { title: "Astarita Inbox" },
       {
         name: "description",
-        content: "Ferramenta interna da Astarita para planejar conteúdos mensais por cliente.",
+        content: "Central de atendimento por WhatsApp com funil, contatos e assistente de IA.",
       },
-      { property: "og:title", content: "Astarita | Planejamento de conteúdo" },
+      { property: "og:title", content: "Astarita Inbox" },
       {
         property: "og:description",
         content: "Calendário editorial por cliente com análise de funil.",

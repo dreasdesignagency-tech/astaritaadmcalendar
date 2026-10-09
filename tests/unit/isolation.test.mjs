@@ -73,6 +73,10 @@ test("rotas de API do Inbox exigem login (requireMember) ou validam assinatura (
   for (const f of walk("src/routes/api/inbox")) {
     assert.match(readFileSync(f, "utf8"), /requireMember\(/, `${f} não chama requireMember`);
   }
-  assert.match(readFileSync("src/routes/api/whatsapp/webhook.ts", "utf8"), /handleWebhookPost/);
-  assert.match(readFileSync("src/lib/inbox/server/whatsapp-service.ts", "utf8"), /verifySignature\(/);
+  // Rotas de administração conferem o nível de acesso, e a empresa nunca vem do corpo do pedido.
+  assert.match(readFileSync("src/routes/api/inbox/team.ts", "utf8"), /requireOrgAdmin\(/);
+  assert.match(readFileSync("src/routes/api/inbox/whatsapp.ts", "utf8"), /requireOrgAdmin\(/);
+  assert.match(readFileSync("src/routes/api/inbox/platform/orgs.ts", "utf8"), /requirePlatformAdmin\(/);
+  for (const f of walk("src/routes/api/inbox").filter((f) => !f.includes("platform")))
+    assert.ok(!/(body|b)(\.orgId|\[\s*["']orgId["']\s*\])/.test(readFileSync(f, "utf8")), `${f} lê a empresa do corpo do pedido`);
 });

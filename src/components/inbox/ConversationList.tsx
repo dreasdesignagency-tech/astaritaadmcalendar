@@ -119,7 +119,7 @@ export function ConversationList({
           </EmptyState>
         ) : totalCount === 0 ? (
           <EmptyState icon={Inbox} title="Sem conversas ainda">
-            Quando alguém escrever para o WhatsApp da Astarita, a conversa aparece aqui. A conexão
+            Quando alguém escrever para o WhatsApp da empresa, a conversa aparece aqui. A conexão
             com o WhatsApp ainda não foi feita.
           </EmptyState>
         ) : visible.length === 0 ? (

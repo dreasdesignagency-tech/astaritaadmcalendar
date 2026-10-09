@@ -39,6 +39,7 @@ export const Route = createFileRoute("/api/inbox/send")({
           if (template === "invalid")
             return json({ error: "Dados do modelo inválidos.", code: "bad_request" }, 400);
           const res = await sendMessage(admin, {
+            orgId: who.orgId,
             userId: who.userId,
             messageId: body.messageId,
             retry: body.retry === true,

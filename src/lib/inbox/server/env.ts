@@ -1,9 +1,4 @@
 import { PUBLIC_INBOX_PROJECT } from "@/lib/inbox/config";
-import {
-  whatsappMissing,
-  normalizeApiVersion,
-  type WhatsAppEnv,
-} from "@/lib/inbox/server/whatsapp-core";
 
 /**
  * Leitura de variáveis de ambiente NO SERVIDOR. Nada daqui vai para o navegador.
@@ -18,35 +13,6 @@ export function env(name: string): string | undefined {
 
 export const graphBase = () =>
   (env("WHATSAPP_GRAPH_BASE_URL") ?? "https://graph.facebook.com").replace(/\/+$/, "");
-
-export function whatsappEnv(): WhatsAppEnv {
-  return {
-    WHATSAPP_ACCESS_TOKEN: env("WHATSAPP_ACCESS_TOKEN"),
-    WHATSAPP_PHONE_NUMBER_ID: env("WHATSAPP_PHONE_NUMBER_ID"),
-    WHATSAPP_VERIFY_TOKEN: env("WHATSAPP_VERIFY_TOKEN"),
-    META_APP_SECRET: env("META_APP_SECRET"),
-    WHATSAPP_API_VERSION: env("WHATSAPP_API_VERSION"),
-  };
-}
-
-/** Para ENVIAR: precisa de token, número e versão. (Verify token e app secret são do webhook.) */
-export function sendConfig():
-  | { ok: true; token: string; phoneNumberId: string; version: string }
-  | { ok: false; missing: string[] } {
-  const e = whatsappEnv();
-  const missing = whatsappMissing(e, [
-    "WHATSAPP_ACCESS_TOKEN",
-    "WHATSAPP_PHONE_NUMBER_ID",
-    "WHATSAPP_API_VERSION",
-  ]);
-  if (missing.length) return { ok: false, missing };
-  return {
-    ok: true,
-    token: e.WHATSAPP_ACCESS_TOKEN as string,
-    phoneNumberId: e.WHATSAPP_PHONE_NUMBER_ID as string,
-    version: normalizeApiVersion(e.WHATSAPP_API_VERSION) as string,
-  };
-}
 
 export function supabaseServerEnv():
   { ok: true; url: string; serviceKey: string } | { ok: false; missing: string[] } {
@@ -98,3 +64,6 @@ export function aiConfig():
   const baseUrl = env("INBOX_AI_BASE_URL");
   return { ok: true, provider, apiKey, model, ...(baseUrl ? { baseUrl } : {}) };
 }
+
+/** Chave que criptografa os segredos de cada empresa no banco. Só no servidor. */
+export const secretsKey = () => env("INBOX_SECRETS_KEY");

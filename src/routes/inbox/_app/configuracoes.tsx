@@ -1,14 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Circle } from "lucide-react";
 
-import { PageHeader } from "@/components/inbox/PageHeader";
-import { UserAvatar } from "@/components/inbox/UserAvatar";
 import { KnowledgeEditor } from "@/components/inbox/KnowledgeEditor";
+import { PageHeader } from "@/components/inbox/PageHeader";
+import { TeamManager } from "@/components/inbox/TeamManager";
 import { WhatsAppSetup } from "@/components/inbox/WhatsAppSetup";
-import { fetchTeam } from "@/lib/inbox/api";
 import { useChannelStatus } from "@/lib/inbox/channel";
-import { ROLE_LABEL } from "@/lib/inbox/types";
+import { useInboxProfile } from "@/lib/inbox/profile-context";
+import { PLAN_LABEL } from "@/lib/inbox/types";
 
 export const Route = createFileRoute("/inbox/_app/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações | Astarita Inbox" }] }),
@@ -32,55 +31,44 @@ function Status({ ok, label, detail }: { ok: boolean; label: string; detail: str
 }
 
 function SettingsPage() {
-  const team = useQuery({ queryKey: ["inbox", "team"], queryFn: fetchTeam });
+  const me = useInboxProfile();
   const channel = useChannelStatus();
   const wa = channel.data?.whatsapp;
   const ai = channel.data?.ai;
+  const serverMissing = channel.data?.serverMissing;
 
   const waDetail = channel.isPending
     ? "Verificando…"
     : channel.isError || !wa
       ? "Não foi possível verificar agora."
-      : !wa.configured
-        ? `Não conectado. Falta configurar no servidor: ${wa.missing.join(", ")}.`
-        : wa.reachable === true
-          ? `Conectado${wa.phone ? ` ao número ${wa.phone}` : ""}${wa.verifiedName ? ` (${wa.verifiedName})` : ""}.`
-          : `Configurado, mas a Meta não respondeu com essas credenciais${wa.error ? `: ${wa.error}` : "."}`;
+      : serverMissing?.length
+        ? "O servidor ainda não está pronto. Veja o passo a passo abaixo."
+        : !wa.configured
+          ? `Não conectado. Falta preencher: ${wa.missing.join(", ")}.`
+          : wa.reachable === true
+            ? `Conectado${wa.phone ? ` ao número ${wa.phone}` : ""}${wa.verifiedName ? ` (${wa.verifiedName})` : ""}.`
+            : `Dados salvos, mas a Meta não respondeu com eles${wa.error ? `: ${wa.error}` : "."}`;
   const aiDetail = channel.isPending
     ? "Verificando…"
     : channel.isError || !ai
       ? "Não foi possível verificar agora."
-      : ai.configured
-        ? `Ligado (${ai.provider}, modelo ${ai.model}). A IA só sugere; você revisa e envia.`
-        : `Não ligado. Falta configurar no servidor: ${ai.missing.join(", ")}.`;
+      : serverMissing?.length
+        ? "O servidor ainda não está pronto."
+        : ai.configured
+          ? `Ligado. A IA só sugere; você revisa e envia. Limite do plano: ${me.org.ai_monthly_limit} sugestões por mês.`
+          : me.is_platform_admin
+            ? `Não ligado. Falta configurar no servidor: ${ai.missing.join(", ")}.`
+            : "Ainda não ativado na plataforma. O atendimento funciona normalmente sem ele.";
 
   return (
     <>
-      <PageHeader title="Configurações" subtitle="Equipe, conexões e conhecimento" />
+      <PageHeader
+        title="Configurações"
+        subtitle={`${me.org.name} · plano ${PLAN_LABEL[me.org.plan]}`}
+      />
       <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto sm:gap-4 lg:grid-cols-2 lg:overflow-visible">
         <section className="inbox-surface rounded-[2rem] p-5 sm:p-6">
-          <h2 className="mb-3 font-display text-base font-semibold">Equipe com acesso</h2>
-          <ul className="space-y-2">
-            {team.data?.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 rounded-2xl bg-secondary px-4 py-3">
-                <UserAvatar name={p.full_name} src={p.avatar_url} />
-                <span className="flex-1">
-                  <span className="block text-sm font-medium">{p.full_name}</span>
-                  <span className="block text-xs text-muted-foreground">{ROLE_LABEL[p.role]}</span>
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {p.active ? "Ativo" : "Inativo"}
-                </span>
-              </li>
-            ))}
-            {team.isPending && <li className="text-sm text-muted-foreground">Carregando…</li>}
-            {team.isError && (
-              <li className="text-sm text-destructive">Não foi possível carregar a equipe.</li>
-            )}
-          </ul>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Não há cadastro público. Novos acessos são criados só por quem administra o projeto.
-          </p>
+          <TeamManager />
         </section>
 
         <section className="inbox-surface rounded-[2rem] p-5 sm:p-6">
@@ -91,7 +79,11 @@ function SettingsPage() {
               label="WhatsApp Business Platform"
               detail={waDetail}
             />
-            <Status ok={!!ai?.configured} label="Assistente de IA" detail={aiDetail} />
+            <Status
+              ok={!!ai?.configured && !serverMissing?.length}
+              label="Assistente de IA"
+              detail={aiDetail}
+            />
           </ul>
         </section>
 
@@ -105,7 +97,7 @@ function SettingsPage() {
         </section>
 
         <section className="inbox-surface rounded-[2rem] p-5 sm:p-6 lg:col-span-2">
-          <h2 className="mb-1 font-display text-base font-semibold">Conhecimento da Astarita</h2>
+          <h2 className="mb-1 font-display text-base font-semibold">Conhecimento da empresa</h2>
           <p className="mb-4 text-xs text-muted-foreground">
             É daqui que o Assistente tira as informações. O que ficar em branco, ele não inventa.
           </p>

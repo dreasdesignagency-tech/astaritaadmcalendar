@@ -20,13 +20,13 @@ async function authHeader(): Promise<Record<string, string>> {
 export async function inboxApi<T>(
   path: string,
   body?: unknown,
-  method: "GET" | "POST" = "POST",
+  method: "GET" | "POST" | "PATCH" = "POST",
 ): Promise<ApiResult<T>> {
   try {
     const res = await fetch(path, {
       method,
       headers: { "content-type": "application/json", ...(await authHeader()) },
-      ...(method === "POST" ? { body: JSON.stringify(body ?? {}) } : {}),
+      ...(method !== "GET" ? { body: JSON.stringify(body ?? {}) } : {}),
     });
     const json = (await res.json().catch(() => null)) as
       (Partial<{ error: string; code: string; missing: string[] }> & T) | null;
@@ -137,7 +137,10 @@ export type ChannelStatus = {
   whatsapp: {
     /** Todas as variáveis de ambiente do backend existem. */
     configured: boolean;
+    /** Rótulos dos campos que faltam salvar (ex.: "Token de acesso"). */
     missing: string[];
+    /** Quais campos estão salvos (sim/não, nunca o valor). */
+    fields: Record<"phoneNumberId" | "version" | "token" | "appSecret" | "verifyToken", boolean>;
     /** O backend conseguiu falar com a Meta com essas credenciais (null = não testado). */
     reachable: boolean | null;
     phone: string | null;
@@ -147,8 +150,6 @@ export type ChannelStatus = {
   ai: { configured: boolean; provider: string | null; model: string | null; missing: string[] };
   /** Eventos recebidos da Meta (só datas e contagem). null = não foi possível ler. */
   webhook: { lastValidAt: string | null; invalidLast24h: number } | null;
-  /** Tabela de variáveis (só nomes e sim/não), montada pelo servidor. */
-  envRows: { name: string; scope: "banco" | "whatsapp"; present: boolean; hint: string }[];
   /** Variáveis do SERVIDOR do Inbox que faltam (acesso ao banco). Só presente quando o servidor não está pronto. */
   serverMissing?: string[];
 };

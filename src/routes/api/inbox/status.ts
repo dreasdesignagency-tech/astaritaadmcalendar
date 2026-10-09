@@ -12,7 +12,7 @@ export const Route = createFileRoute("/api/inbox/status")({
           const admin = getAdmin();
           const who = await requireMember(request, admin);
           if (!who.ok) return who.res;
-          return json({ ok: true, status: await channelStatus(admin) });
+          return json({ ok: true, status: await channelStatus(admin, who.orgId) });
         } catch (e) {
           const cfg = configErrorResponse(e);
           if (cfg) return cfg;

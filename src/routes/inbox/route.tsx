@@ -14,7 +14,7 @@ export const Route = createFileRoute("/inbox")({
   head: () => ({
     meta: [
       { title: "Astarita Inbox" },
-      { name: "description", content: "Central de atendimento da Astarita." },
+      { name: "description", content: "Central de atendimento por WhatsApp." },
       { name: "robots", content: "noindex" },
     ],
   }),
