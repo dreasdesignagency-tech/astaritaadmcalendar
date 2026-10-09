@@ -149,6 +149,16 @@ export function requirePlatformAdmin(
 
 /** Resposta padrão quando o servidor não tem a configuração mínima do Supabase do Inbox. */
 export function configErrorResponse(e: unknown): Response | null {
+  const named = e as { name?: string; missing?: string[] } | null;
+  if (named?.name === "SecretsKeyError")
+    return json(
+      {
+        error: "O servidor do Inbox ainda não está configurado.",
+        code: "server_not_configured",
+        missing: named.missing ?? ["INBOX_SECRETS_KEY"],
+      },
+      503,
+    );
   if (e instanceof ServerConfigError)
     return json(
       {

@@ -49,4 +49,12 @@ out=$(su postgres -c "psql -q -v ON_ERROR_STOP=1 -d mtb -f $PWD/$M/2026101000000
 out=$(su postgres -c "psql -v ON_ERROR_STOP=1 -d mtb -f $PWD/tests/db/multitenant.test.sql" 2>&1) || { echo "$out" | filter; echo "FALHOU (B)"; exit 1; }
 echo "$out" | grep -E "PASSARAM"
 if su postgres -c "psql -q -v ON_ERROR_STOP=1 -d mtb -f $PWD/$M/20261010000000_inbox_multitenant.sql" >/dev/null 2>&1; then echo "FALHOU: reaplicar a migration deveria abortar"; exit 1; else echo "reaplicar a migration aborta (ok)"; fi
+echo "== C) reversão da migration multiempresa: o esquema volta idêntico e os dados continuam"
+out=$(su postgres -c "psql -q -v ON_ERROR_STOP=1 -d mtb -f $PWD/inbox-db/rollback/inbox_multitenant.revert.sql" 2>&1) || { echo "$out" | filter; echo "FALHOU (reversão)"; exit 1; }
+su postgres -c "pg_dump -s -d mta" | grep -v -E "^--|^$|restrict" > /tmp/mt_before.sql
+su postgres -c "pg_dump -s -d mtb" | grep -v -E "^--|^$|restrict" > /tmp/mt_after.sql
+if ! diff <(sort /tmp/mt_before.sql) <(sort /tmp/mt_after.sql) >/tmp/mt_diff.txt; then echo "FALHOU: o esquema revertido difere do original:"; head -30 /tmp/mt_diff.txt; exit 1; fi
+n=$(su postgres -c "psql -d mtb -tAc \"select (select count(*) from contacts)||'|'||(select count(*) from messages)||'|'||(select count(*) from profiles)||'|'||(select count(*) from knowledge_base)||'|'||(select count(*) from internal_notes)\"")
+[ "$n" = "2|2|2|8|1" ] || { echo "FALHOU: dados após a reversão = $n (esperado 2|2|2|8|1)"; exit 1; }
+echo "reversão ok: esquema idêntico ao anterior e nenhum dado perdido"
 echo "TUDO OK"

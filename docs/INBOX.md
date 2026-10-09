@@ -1,5 +1,7 @@
 # Astarita Inbox
 
+> **Multiempresa (SaaS):** esta versão atende várias empresas, cada uma isolada das outras. Veja `docs/SAAS.md`. As seções abaixo que falam de variáveis `WHATSAPP_*` descrevem a versão de empresa única; agora o WhatsApp é salvo por empresa, na tela de Configurações.
+
 Central privada de atendimento via WhatsApp, (TanStack Start + Supabase). **Nesta branch o calendário foi removido**: o projeto é só o Inbox e `/` redireciona para `/inbox`. O calendário continua na `main` e na publicação do Lovable. As menções ao calendário abaixo descrevem o desenho original de isolamento,
 mas com **banco, login e sessão totalmente separados**.
 

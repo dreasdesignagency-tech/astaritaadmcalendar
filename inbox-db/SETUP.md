@@ -93,3 +93,14 @@ Aplicadas no projeto `yappbzpayqejqpkfebho`, com autorização: `inbox_hardening
 em 9 tabelas, bucket `inbox-media` privado, funções do WhatsApp só para service_role). Aviso restante do Advisor, **intencional**:
 `is_inbox_member()` é executável por usuários logados (as policies dependem dela; devolve só se o próprio usuário é membro).
 Usuários em Authentication: 0. Perfis: 0.
+
+## Migration multiempresa (SaaS): preparada, NÃO aplicada no banco real
+Arquivo: `supabase/migrations/20261010000000_inbox_multitenant.sql`. Reversão (testada): `rollback/inbox_multitenant.revert.sql` (só roda com uma única empresa).
+Testes: `tests/db/run-db-tests.sh` (migration sobre dados da Astarita, 100+ verificações de isolamento, reaplicar aborta, reversão devolve o esquema idêntico sem perder dados).
+
+Plano de aplicação no projeto `yappbzpayqejqpkfebho` (cada passo só com autorização do dono):
+1. Conferir o projeto (nome "Astarita Inbox") e rodar `sql/audit-readonly.sql` (estado esperado: baseline + Fase 3/4, 25 OK).
+2. `apply_migration` (name `inbox_multitenant`) com o conteúdo do arquivo, numa transação única. Se algo falhar, nada é aplicado.
+3. Auditoria de novo: estado "baseline + Fase 3/4 + multiempresa", 30 OK e 0 FALHA. Conferir que Andreas e Juline continuam com acesso (empresa Astarita, nível proprietário, Andreas dono da plataforma).
+4. Regerar os tipos (`npm run inbox:types`) e conferir contra `src/lib/inbox/database.types.ts`.
+5. SÓ DEPOIS: publicar o código novo. O código já publicado continua funcionando depois da migration (as inserções do navegador preenchem a empresa sozinhas); o contrário não vale.

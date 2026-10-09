@@ -4,6 +4,7 @@
 //   FORCE_DELAY -> responde depois de 1200 ms (para testar status que chegam antes do id gravado; id fixo wamid.RACE1)
 import http from 'node:http';
 const TOKEN = 'token-de-teste-da-meta';
+const TOKEN_B = 'token-da-empresa-b-0123456789'; // segunda empresa do SaaS: token e número próprios
 const log = [];
 let n = 0;
 const MEDIA = { MEDIA_IMG_1: { mime: 'image/jpeg', bytes: Buffer.from('fake-jpeg-bytes') }, MEDIA_DOC_1: { mime: 'application/pdf', bytes: Buffer.from('%PDF-fake') } };
@@ -16,8 +17,8 @@ http.createServer((req, res) => {
   let raw = ''; req.on('data', (c) => (raw += c)); req.on('end', () => {
     const auth = req.headers.authorization || '';
     const body = raw ? (() => { try { return JSON.parse(raw); } catch { return raw; } })() : null;
-    log.push({ method: req.method, path: url.pathname + url.search, auth: auth === `Bearer ${TOKEN}` ? 'ok' : auth ? 'errado' : 'ausente', body });
-    if (auth !== `Bearer ${TOKEN}`) return send(401, { error: { message: 'Invalid OAuth access token.', type: 'OAuthException', code: 190 } });
+    log.push({ method: req.method, path: url.pathname + url.search, auth: auth === `Bearer ${TOKEN}` ? 'ok' : auth === `Bearer ${TOKEN_B}` ? 'okB' : auth ? 'errado' : 'ausente', body });
+    if (auth !== `Bearer ${TOKEN}` && auth !== `Bearer ${TOKEN_B}`) return send(401, { error: { message: 'Invalid OAuth access token.', type: 'OAuthException', code: 190 } });
 
     if (req.method === 'POST' && /^\/v[\d.]+\/[^/]+\/messages$/.test(url.pathname)) {
       const text = body?.text?.body ?? '';
@@ -31,7 +32,8 @@ http.createServer((req, res) => {
     if (req.method === 'GET' && /^\/v[\d.]+\/[^/]+$/.test(url.pathname)) {
       const id = url.pathname.split('/').pop();
       if (MEDIA[id]) return send(200, { url: `http://127.0.0.1:3004/media-download/${id}`, mime_type: MEDIA[id].mime, file_size: MEDIA[id].bytes.length, id });
-      if (id === 'PHONE_ID') return send(200, { display_phone_number: '+1 555 000 1111', verified_name: 'Astarita Teste', id });
+      if (id === '109876543210' && auth === `Bearer ${TOKEN}`) return send(200, { display_phone_number: '+1 555 000 1111', verified_name: 'Astarita Teste', id });
+      if (id === '209876543210' && auth === `Bearer ${TOKEN_B}`) return send(200, { display_phone_number: '+1 555 000 2222', verified_name: 'Empresa B Teste', id });
       return send(400, { error: { message: 'Unsupported get request', code: 100 } });
     }
     if (req.method === 'GET' && url.pathname.startsWith('/media-download/')) {

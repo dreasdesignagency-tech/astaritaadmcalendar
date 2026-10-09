@@ -204,8 +204,8 @@ test("validação do que a pessoa digita (campo ausente = manter o atual)", () =
 });
 
 test("phone_number_id do payload (para recusar eventos de outro número)", () => {
-  assert.deepEqual(webhookPhoneNumberIds(fx("text")), ["PHONE_ID"]);
-  assert.deepEqual(webhookPhoneNumberIds(fx("status-read")), ["PHONE_ID"]);
+  assert.deepEqual(webhookPhoneNumberIds(fx("text")), ["109876543210"]);
+  assert.deepEqual(webhookPhoneNumberIds(fx("status-read")), ["109876543210"]);
   assert.deepEqual(webhookPhoneNumberIds(fx("garbage")), []);
   assert.deepEqual(webhookPhoneNumberIds(null), []);
   const two = { entry: [{ changes: [{ value: { metadata: { phone_number_id: "A" } } }, { value: { metadata: { phone_number_id: "B" } } }, { value: { metadata: { phone_number_id: "A" } } }] }] };

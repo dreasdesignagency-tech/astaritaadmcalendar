@@ -3,11 +3,14 @@
 //   /auth/v1/*  -> GoTrue SIMULADO (só o necessário para testar as telas de login; não é o GoTrue de verdade)
 // Realtime não existe aqui (responde 404): o app cai no modo de contingência, que é o que o teste valida.
 import http from 'node:http';
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
+import { execSync } from 'node:child_process';
 
 const SECRET = 'e2e-secret-e2e-secret-e2e-secret-123456';
 const STORE = new Map();
 const PASSWORD = 'senha-teste-123';
+const DYN = new Map(); // usuários criados pela API de administração: email -> { id, password }
+const psql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: q }).toString().trim();
 const USERS = { 'andreas@t': '00000000-0000-0000-0000-00000000000a', 'juline@t': '00000000-0000-0000-0000-00000000000b' };
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const sign = (sub, email) => { const h = b64({ alg: 'HS256', typ: 'JWT' }), p = b64({ sub, email, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 }); return `${h}.${p}.${createHmac('sha256', SECRET).update(`${h}.${p}`).digest('base64url')}`; };
@@ -20,10 +23,45 @@ http.createServer((req, res) => {
   if (req.url.startsWith('/auth/v1/token')) {
     let raw = ''; req.on('data', (c) => (raw += c)); req.on('end', () => {
       const { email, password } = JSON.parse(raw || '{}');
-      const id = USERS[(email || '').toLowerCase()];
-      if (!id || password !== PASSWORD) return json(400, { code: 400, error_code: 'invalid_credentials', msg: 'Invalid login credentials' });
+      const key = (email || '').toLowerCase();
+      const dyn = DYN.get(key);
+      const id = dyn ? dyn.id : USERS[key];
+      if (!id || password !== (dyn ? dyn.password : PASSWORD)) return json(400, { code: 400, error_code: 'invalid_credentials', msg: 'Invalid login credentials' });
       const now = Math.floor(Date.now() / 1000);
       json(200, { access_token: sign(id, email), token_type: 'bearer', expires_in: 3600, expires_at: now + 3600, refresh_token: 'r', user: { id, aud: 'authenticated', role: 'authenticated', email, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } });
+    });
+    return;
+  }
+  if (req.url === '/__reset-users') { DYN.clear(); return json(200, { ok: true }); }
+  if (req.url.startsWith('/auth/v1/admin/users')) { // GoTrue SIMULADO: criar, trocar senha e apagar usuários (só com chave de serviço)
+    const tok = (req.headers.authorization || '').replace(/^Bearer /, '');
+    const [h, p, sig] = tok.split('.');
+    let role = null;
+    try { if (sig && createHmac('sha256', SECRET).update(`${h}.${p}`).digest('base64url') === sig) role = JSON.parse(Buffer.from(p, 'base64url').toString()).role; } catch {}
+    if (role !== 'service_role') return json(401, { code: 401, error_code: 'not_admin', msg: 'User not allowed' });
+    const u = new URL(req.url, 'http://x');
+    const idFromPath = u.pathname.split('/')[5];
+    let raw = ''; req.on('data', (c) => (raw += c)); req.on('end', () => {
+      const body = JSON.parse(raw || '{}');
+      if (req.method === 'POST') {
+        const email = String(body.email || '').toLowerCase();
+        const exists = DYN.has(email) || USERS[email] || psql(`select count(*) from auth.users where lower(email)='${email.replace(/'/g, "''")}'`) !== '0';
+        if (exists) return json(422, { code: 422, error_code: 'email_exists', msg: 'A user with this email address has already been registered' });
+        const id = randomUUID();
+        psql(`insert into auth.users(id, email) values ('${id}', '${email.replace(/'/g, "''")}')`);
+        DYN.set(email, { id, password: body.password });
+        return json(200, { id, email, aud: 'authenticated', role: 'authenticated', user_metadata: body.user_metadata || {}, app_metadata: {}, created_at: new Date().toISOString() });
+      }
+      if (req.method === 'PUT' && idFromPath) {
+        for (const [email, v] of DYN) if (v.id === idFromPath) { v.password = body.password ?? v.password; return json(200, { id: v.id, email }); }
+        return json(404, { code: 404, error_code: 'user_not_found', msg: 'User not found' });
+      }
+      if (req.method === 'DELETE' && idFromPath) {
+        for (const [email, v] of DYN) if (v.id === idFromPath) DYN.delete(email);
+        try { psql(`delete from auth.users where id='${idFromPath.replace(/[^0-9a-f-]/g, '')}'`); } catch {}
+        return json(200, {});
+      }
+      return json(405, { msg: 'method not allowed' });
     });
     return;
   }

@@ -359,7 +359,10 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
       body: { error: "Informe o modelo aprovado a enviar.", code: "template_required" },
     };
 
-  const wa = await loadOrgWhatsApp(admin, input.orgId);
+  const wa = await loadOrgWhatsApp(admin, input.orgId).catch((e: unknown) => {
+    if ((e as { name?: string })?.name === "SecretsKeyError") return null; // servidor sem a chave: tratado como não conectado
+    throw e;
+  });
   const sendMissing = wa
     ? credentialsMissing(wa.creds, ["phoneNumberId", "token", "version"])
     : ["ID do número de telefone", "Token de acesso", "Versão da API"];

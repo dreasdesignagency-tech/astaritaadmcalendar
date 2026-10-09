@@ -4,7 +4,7 @@
 (o ambiente bloqueia o domínio). Os nomes de menus e campos abaixo vêm do conhecimento do autor e **podem ter mudado**. Se uma tela da Meta
 for diferente, siga a tela da Meta. O que foi testado é o lado do Inbox, contra uma Meta **simulada**, e nunca contra a Meta real.
 
-Endereço do webhook de produção: `https://astarita-inbox.vercel.app/api/whatsapp/webhook`
+Endereço do webhook: o que aparece na tela de Configurações (um por empresa, com chave aleatória no final).
 
 ## 1. Qual número usar (decidir antes de mexer na Meta)
 
@@ -46,31 +46,33 @@ Tech Provider? O Brasil é suportado hoje?"
 7. **Verify token:** invente um texto longo e aleatório. Ele vai em `WHATSAPP_VERIFY_TOKEN` e também no campo da Meta (passo 9).
 8. **Versão da API:** use a versão que a Meta mostra nos exemplos da API Setup, por exemplo `v21.0` (ou mais nova). Vai em `WHATSAPP_API_VERSION`.
 
-## 3. Variáveis na Vercel (projeto `astarita-inbox`)
+## 3. Dados na tela do Inbox (não é mais na Vercel)
 
-**Settings > Environment Variables**, ambiente Production, **sem** prefixo `VITE_`. Só estes **nomes** (os valores você digita lá, nunca em chat nem no GitHub):
+Cada empresa salva o seu próprio WhatsApp em **Configurações > Conectar o WhatsApp** (precisa ser proprietário ou administrador):
 
-| Nome | De onde vem |
+| Campo da tela | De onde vem |
 |---|---|
-| `INBOX_SUPABASE_SERVICE_ROLE_KEY` | Supabase do Inbox > Project Settings > API (chave de serviço / secret). Só para o servidor. |
-| `WHATSAPP_PHONE_NUMBER_ID` | passo 4 |
-| `META_APP_SECRET` | passo 5 |
-| `WHATSAPP_ACCESS_TOKEN` | passo 6 |
-| `WHATSAPP_VERIFY_TOKEN` | passo 7 |
-| `WHATSAPP_API_VERSION` | passo 8 |
+| ID do número de telefone | passo 4 |
+| Versão da API | passo 8 |
+| Token de acesso | passo 6 |
+| App Secret | passo 5 |
 
-Depois, **Redeploy** (as variáveis só valem em um novo deploy). Abra **Configurações > Conectar o WhatsApp** no Inbox: os passos 1 a 3 devem ficar
-verdes, e a tela mostra o número e o nome que a Meta devolveu.
+O **Verify token** é gerado pelo sistema e aparece na tela para você copiar para a Meta (passo 7 abaixo não é mais necessário).
+Clique em **Salvar e conferir com a Meta**. Os passos da tela mudam sozinhos: dados salvos, Meta aceitou (mostra o número e o nome), webhook recebendo.
+O token e o App Secret ficam guardados com criptografia e nunca voltam para a tela. Não é preciso Redeploy.
+
+**Só o dono da plataforma** precisa ter, na Vercel, `INBOX_SUPABASE_SERVICE_ROLE_KEY` e `INBOX_SECRETS_KEY` (ver `docs/SAAS.md`). Sem a segunda,
+a tela avisa "O servidor do sistema está pronto: falta definir INBOX_SECRETS_KEY".
 
 ## 4. Webhook na Meta
 
 1. No app, **WhatsApp > Configuração (Configuration)** > Webhook > **Editar**.
-2. **URL de retorno de chamada:** `https://astarita-inbox.vercel.app/api/whatsapp/webhook`
-3. **Verificar token:** o mesmo texto de `WHATSAPP_VERIFY_TOKEN`. Salvar (a Meta faz uma chamada GET que o Inbox responde).
+2. **URL de retorno de chamada:** copie na tela (botão Copiar). Cada empresa tem um endereço próprio, no formato `https://SEU-ENDERECO/api/whatsapp/webhook/<chave>`
+3. **Verificar token:** copie o "Verify token" que aparece na tela. Salvar (a Meta faz uma chamada GET que o Inbox responde).
 4. Em **Campos do webhook**, assine **messages**. (Só na coexistência, se confirmada: `smb_message_echoes`.)
 5. Mande uma mensagem do seu celular para o número de teste. No Inbox, o passo "O webhook está recebendo eventos" fica verde e a conversa aparece.
 
-Se a tela mostrar "chamada(s) recusada(s) por assinatura inválida", o `META_APP_SECRET` não é o do app que está enviando o webhook.
+Se a tela mostrar "chamada(s) recusada(s) por assinatura inválida", o App Secret salvo não é o do app que está enviando o webhook.
 
 ## 5. Regras da Meta que o Inbox respeita
 - Texto livre só até **24 horas** depois da última mensagem do cliente. Depois disso, só **modelo de mensagem aprovado**

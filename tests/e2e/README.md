@@ -11,7 +11,7 @@ Os testes validam o NOSSO lado do contrato, não a Meta nem um modelo de IA reai
 Pré-requisitos: PostgreSQL 16 (usuário `postgres` via `su`), binário do PostgREST, Node 22, Playwright com Chromium.
 
 ```bash
-POSTGREST_BIN=/caminho/postgrest tests/e2e/stack.sh up      # banco + simulados + 3 servidores (5197 sem WhatsApp/IA, 5198 sem Inbox, 5199 completo)
+POSTGREST_BIN=/caminho/postgrest tests/e2e/stack.sh up      # banco + simulados + 3 servidores (5196 sem IA, 5197 sem a chave dos segredos, 5198 sem Inbox, 5199 completo)
 npm test                                                    # unitários
 node tests/e2e/inbox.e2e.mjs ./saida
 node tests/e2e/isolation.e2e.mjs ./saida
@@ -19,6 +19,10 @@ node tests/e2e/whatsapp.api.mjs
 node tests/e2e/phase34.e2e.mjs ./saida                      # ~5 min (espera a contingência de 15 s)
 node tests/e2e/ai.api.mjs
 node tests/e2e/ai.e2e.mjs ./saida
+node tests/e2e/whatsapp-setup.e2e.mjs ./saida
+node tests/e2e/saas.api.mjs                                 # duas empresas: isolamento, equipe, limites, suspensão, webhook por empresa
+node tests/e2e/saas.e2e.mjs ./saida                         # painel da plataforma e equipe na interface
+tests/db/run-db-tests.sh                                    # SQL: migrations, multiempresa, reversão
 tests/e2e/stack.sh down
 ```
 Cada script zera os dados que usa no começo. Os caminhos do Chromium/Playwright e o `psql` via `su postgres` estão fixos no

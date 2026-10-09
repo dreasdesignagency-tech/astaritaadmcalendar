@@ -7,7 +7,7 @@ import {
   requireMember,
   requireOrgAdmin,
 } from "@/lib/inbox/server/admin";
-import { loadOrgWhatsApp, saveOrgWhatsApp, SecretsKeyError } from "@/lib/inbox/server/org";
+import { loadOrgWhatsApp, saveOrgWhatsApp } from "@/lib/inbox/server/org";
 import { forgetChannelCache, channelStatus } from "@/lib/inbox/server/whatsapp-service";
 
 /**
@@ -26,7 +26,12 @@ export const Route = createFileRoute("/api/inbox/whatsapp")({
           if (!who.ok) return who.res;
           const denied = requireOrgAdmin(who);
           if (denied) return denied;
-          const wa = await loadOrgWhatsApp(admin, who.orgId);
+          let wa = await loadOrgWhatsApp(admin, who.orgId);
+          if (!wa?.creds.verifyToken) {
+            // O verify token precisa existir ANTES de a pessoa cadastrar o webhook na Meta: gera na primeira consulta.
+            await saveOrgWhatsApp(admin, who.orgId, {});
+            wa = await loadOrgWhatsApp(admin, who.orgId);
+          }
           return json({
             ok: true,
             webhookKey: wa?.webhookKey ?? null,
@@ -73,15 +78,6 @@ export const Route = createFileRoute("/api/inbox/whatsapp")({
 });
 
 function fail(e: unknown): Response {
-  if (e instanceof SecretsKeyError)
-    return json(
-      {
-        error: "O servidor ainda não tem a chave que protege as credenciais.",
-        code: "server_not_configured",
-        missing: ["INBOX_SECRETS_KEY"],
-      },
-      503,
-    );
   const cfg = configErrorResponse(e);
   if (cfg) return cfg;
   console.error("[inbox-whatsapp]", (e as { message?: string })?.message);

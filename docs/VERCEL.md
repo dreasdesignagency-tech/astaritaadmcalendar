@@ -8,8 +8,8 @@ Esta branch NÃO contém mais o calendário (removido; ele segue na `main` e na 
 - `git.deploymentEnabled.main = false`: este projeto Vercel **não** faz deploy da `main`.
 - Em produção o app usa sozinho a URL e a chave **publicável** do projeto Supabase do Inbox (`PUBLIC_INBOX_PROJECT` em
   `src/lib/inbox/config.ts`). Variáveis `VITE_INBOX_*` na Vercel, se existirem, têm prioridade.
-- Nada secreto vai para o navegador: `INBOX_SUPABASE_SERVICE_ROLE_KEY`, `WHATSAPP_*`, `META_APP_SECRET` e `INBOX_AI_*` só são
-  lidas no servidor, em tempo de execução. Conferido no build com valores falsos: nenhum apareceu nos arquivos do navegador nem no servidor.
+- Nada secreto vai para o navegador: `INBOX_SUPABASE_SERVICE_ROLE_KEY`, `INBOX_SECRETS_KEY` e `INBOX_AI_*` só são
+  lidas no servidor, em tempo de execução (token e App Secret do WhatsApp ficam cifrados no banco). Conferido no build com valores falsos: nenhum apareceu nos arquivos do navegador nem no servidor.
 
 ## Passo a passo (no painel da Vercel)
 1. Add New > Project > importe o repositório `dreasdesignagency-tech/astaritaadmcalendar`.
@@ -19,6 +19,7 @@ Esta branch NÃO contém mais o calendário (removido; ele segue na `main` e na 
 5. Deploy. O endereço será `https://astarita-inbox.vercel.app` (ou parecido).
 6. No Supabase do Inbox: Authentication > URL Configuration: Site URL = esse endereço; Redirect URLs = `https://SEU-ENDERECO/inbox/definir-senha`.
 
-## Depois (WhatsApp e IA)
-Na Vercel, Settings > Environment Variables (marque Production, **sem** prefixo `VITE_`): `INBOX_SUPABASE_SERVICE_ROLE_KEY`,
-`WHATSAPP_*`, `META_APP_SECRET`, `INBOX_AI_*`. Depois, Redeploy. O webhook da Meta fica em `https://SEU-ENDERECO/api/whatsapp/webhook`.
+## Depois (equipe, WhatsApp e IA)
+Na Vercel, Settings > Environment Variables (Production, **sem** prefixo `VITE_`): `INBOX_SUPABASE_SERVICE_ROLE_KEY`, `INBOX_SECRETS_KEY` e, para a IA,
+`INBOX_AI_PROVIDER`, `INBOX_AI_API_KEY`, `INBOX_AI_MODEL`. Depois, Redeploy. As credenciais do WhatsApp **não** vão mais na Vercel:
+cada empresa as salva em Configurações (ver `docs/SAAS.md` e `docs/WHATSAPP-CONEXAO.md`).

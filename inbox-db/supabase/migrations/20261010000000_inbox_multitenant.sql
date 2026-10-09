@@ -144,7 +144,7 @@ begin
     'contacts', 'conversations', 'messages', 'tags', 'contact_tags', 'pipeline_stages', 'opportunities',
     'quick_replies', 'reminders', 'knowledge_base', 'ai_suggestions', 'internal_notes'
   ] loop
-    execute format('alter table public.%I add column org_id uuid references public.organizations(id)', t);
+    execute format('alter table public.%I add column org_id uuid references public.organizations(id) on delete cascade', t);
     execute format('update public.%I set org_id = %L', t, v_org);
     execute format('alter table public.%I alter column org_id set not null', t);
     execute format('create index %I on public.%I (org_id)', t || '_org_idx', t);
@@ -466,7 +466,7 @@ begin
     (v_org, 'condicoes_comerciais', 'Condições comerciais', ''),
     (v_org, 'respostas_aprovadas', 'Respostas aprovadas', '');
 
-  insert into public.org_whatsapp (org_id, webhook_key) values (v_org, encode(gen_random_bytes(16), 'hex'));
+  insert into public.org_whatsapp (org_id, webhook_key) values (v_org, replace(gen_random_uuid()::text, '-', ''));
   return v_org;
 end $$;
 
@@ -475,7 +475,7 @@ grant execute on function public.inbox_create_org(text, text, text) to service_r
 
 -- A Astarita também ganha a linha de credenciais do WhatsApp (vazia até ser configurada).
 insert into public.org_whatsapp (org_id, webhook_key)
-select id, encode(gen_random_bytes(16), 'hex') from public.organizations where slug = 'astarita';
+select id, replace(gen_random_uuid()::text, '-', '') from public.organizations where slug = 'astarita';
 
 -- ---------------------------------------------------------------------------
 -- Funções do WhatsApp: agora recebem a empresa. As antigas (sem empresa) saem.

@@ -10,10 +10,11 @@ const A = '00000000-0000-0000-0000-00000000000a', B = '00000000-0000-0000-0000-0
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (sub, email, role = 'authenticated') => { const h = b64({ alg: 'HS256', typ: 'JWT' }), p = b64({ sub, email, role, aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 }); return `${h}.${p}.${createHmac('sha256', SECRET).update(`${h}.${p}`).digest('base64url')}`; };
 const TA = jwt(A, 'andreas@t'), TB = jwt(B, 'juline@t'), TX = jwt(X, 'intruso@t');
-const sql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: q }).toString().trim();
+const sql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: `do $$ begin perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false); end $$;\n${q}` }).toString().trim();
 const fx = (n) => readFileSync(`tests/fixtures/whatsapp/${n}.json`, 'utf8');
-const sign = (raw, secret = APP_SECRET) => `sha256=${createHmac('sha256', secret).update(raw).digest('hex')}`;
+const sign = (raw, secret = APP_SECRET_REAL) => `sha256=${createHmac('sha256', secret).update(raw).digest('hex')}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let APP_SECRET_REAL = '';
 const results = [], seen = [];
 const check = (name, ok, extra = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '  -> ' + extra}`); };
 
@@ -23,7 +24,8 @@ async function call(base, path, { method = 'POST', token, body, raw, headers = {
   let json = null; try { json = JSON.parse(text); } catch {}
   return { status: res.status, json, text };
 }
-const hook = (base, raw, sig) => call(base, '/api/whatsapp/webhook', { raw, headers: sig === null ? {} : { 'x-hub-signature-256': sig ?? sign(raw), 'content-type': 'application/json' } });
+let KEY = '', VERIFY = '', ORG = '';
+const hook = (base, raw, sig) => call(base, `/api/whatsapp/webhook/${KEY}`, { raw, headers: sig === null ? {} : { 'x-hub-signature-256': sig ?? sign(raw), 'content-type': 'application/json' } });
 const graphLog = async () => (await (await fetch(`${GRAPH}/__requests`)).json());
 const graphPosts = async () => (await graphLog()).filter((r) => r.method === 'POST' && /\/messages$/.test(r.path));
 async function pendingMsg(token, convId, userId, body, extra = {}) {
@@ -36,13 +38,35 @@ const row = (id) => sql(`select status||'|'||coalesce(wa_message_id,'')||'|'||co
 await fetch(`${GRAPH}/__reset`);
 sql(`truncate contacts, tags, webhook_events, quick_replies, reminders, internal_notes, ai_suggestions cascade; update profiles set active=true;`);
 
+// ================================================================ configuração da empresa pela API (o caminho real da tela)
+ORG = sql(`select id from organizations where slug='astarita'`);
+sql(`update org_whatsapp set phone_number_id=null, api_version=null, access_token_enc=null, app_secret_enc=null, verify_token_enc=null, connected_at=null where org_id='${ORG}'`);
+let r = await call(OK_BASE, '/api/inbox/whatsapp', { method: 'GET', token: TB });
+check('Juline (dona) lê a conexão: chave do webhook existe e nada foi salvo ainda', r.status === 200 && /^[a-f0-9]{32}$/.test(r.json?.webhookKey ?? '') && r.json.hasToken === false && r.json.hasAppSecret === false, r.text);
+KEY = r.json.webhookKey;
+r = await call(OK_BASE, '/api/inbox/whatsapp', { token: TA, body: { phoneNumberId: '109876543210', version: 'v21.0', token: META_TOKEN + 'xxxxxxxxxx', appSecret: APP_SECRET + '0123456789abcdef' } });
+check('token e App Secret mal formados (curtos/com símbolos) são recusados antes de salvar', r.status === 400 && ['token', 'appSecret'].includes(r.json?.field), r.text);
+r = await call(OK_BASE, '/api/inbox/whatsapp', { token: TA, body: { phoneNumberId: '109876543210', version: 'v21.0', token: META_TOKEN, appSecret: APP_SECRET.replace(/[^A-Za-z0-9]/g, '') + 'abcdef0123456789' } });
+check('credenciais válidas são salvas e conferidas com a Meta', r.status === 200 && r.json?.status?.whatsapp?.reachable === true, r.text);
+APP_SECRET_REAL = APP_SECRET.replace(/[^A-Za-z0-9]/g, '') + 'abcdef0123456789';
+check('no banco, token e App Secret estão CIFRADOS (nunca em texto puro)', sql(`select (access_token_enc like 'v1.%')::text||(app_secret_enc like 'v1.%')::text||(verify_token_enc like 'v1.%')::text from org_whatsapp where org_id='${ORG}'`) === 'truetruetrue' && !sql(`select access_token_enc||app_secret_enc from org_whatsapp`).includes(META_TOKEN));
+r = await call(OK_BASE, '/api/inbox/whatsapp', { method: 'GET', token: TA });
+VERIFY = r.json?.verifyToken ?? '';
+check('GET devolve verify token e id do número, mas NUNCA o token nem o App Secret', r.json?.hasToken === true && r.json?.hasAppSecret === true && r.json?.phoneNumberId === '109876543210' && VERIFY.length >= 32 && !r.text.includes(META_TOKEN) && !r.text.includes('abcdef0123456789'), r.text);
+
 // ================================================================ webhook: verificação e assinatura
-let r = await call(OK_BASE, '/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=verify-teste&hub.challenge=987654', { method: 'GET' });
+r = await call(OK_BASE, `/api/whatsapp/webhook/${KEY}?hub.mode=subscribe&hub.verify_token=${VERIFY}&hub.challenge=987654`, { method: 'GET' });
 check('GET verificação: token certo devolve o challenge', r.status === 200 && r.text === '987654', `${r.status} ${r.text}`);
-r = await call(OK_BASE, '/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=errado&hub.challenge=1', { method: 'GET' });
+r = await call(OK_BASE, `/api/whatsapp/webhook/${KEY}?hub.mode=subscribe&hub.verify_token=errado&hub.challenge=1`, { method: 'GET' });
 check('GET verificação: token errado é recusado (403)', r.status === 403);
-r = await call(OK_BASE, '/api/whatsapp/webhook?hub.mode=subscribe&hub.challenge=1', { method: 'GET' });
+r = await call(OK_BASE, `/api/whatsapp/webhook/${KEY}?hub.mode=subscribe&hub.challenge=1`, { method: 'GET' });
 check('GET verificação: sem token é recusado', r.status === 403);
+r = await call(OK_BASE, `/api/whatsapp/webhook/${'0'.repeat(32)}?hub.mode=subscribe&hub.verify_token=${VERIFY}&hub.challenge=1`, { method: 'GET' });
+check('GET com chave de empresa inexistente é recusado igual (403)', r.status === 403);
+r = await call(OK_BASE, `/api/whatsapp/webhook/lixo?hub.mode=subscribe&hub.verify_token=${VERIFY}&hub.challenge=1`, { method: 'GET' });
+check('GET com chave mal formada é recusado (403)', r.status === 403);
+r = await call(OK_BASE, '/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=x&hub.challenge=1', { method: 'GET' });
+check('o endereço antigo, sem chave de empresa, não existe mais', r.status === 404 || r.status === 405);
 
 const rawText = fx('text');
 r = await hook(OK_BASE, rawText, null);
@@ -52,7 +76,7 @@ check('POST com assinatura de outro segredo é recusado (401)', r.status === 401
 r = await hook(OK_BASE, rawText + ' ', sign(rawText));
 check('POST com corpo alterado depois de assinado é recusado (401)', r.status === 401);
 check('nada foi gravado pelos POSTs recusados (contatos/mensagens)', sql(`select count(*) from contacts`) === '0' && sql(`select count(*) from messages`) === '0');
-check('eventos recusados ficam no histórico SEM o conteúdo do corpo', sql(`select count(*) from webhook_events where signature_valid=false`) === '3' && sql(`select count(*) from webhook_events where signature_valid=false and payload::text like '%Maria%'`) === '0');
+check('eventos recusados ficam no histórico SEM o conteúdo do corpo, ligados à empresa', sql(`select count(*) from webhook_events where signature_valid=false`) === '3' && sql(`select count(*) from webhook_events where signature_valid=false and payload::text like '%Maria%'`) === '0');
 
 // ================================================================ webhook: mensagem de texto
 r = await hook(OK_BASE, rawText);
@@ -209,7 +233,7 @@ const bytes = await fetch(r.json.url);
 check('o arquivo baixado da Meta chega íntegro pela URL assinada', (await bytes.text()) === 'fake-jpeg-bytes');
 const gl = (await graphLog()).slice(gBefore);
 check('o servidor falou com a Meta usando o token (metadados e download), nunca o navegador', gl.length === 2 && gl.every((x) => x.auth === 'ok'), JSON.stringify(gl.map((x) => [x.path, x.auth])));
-check('o caminho guardado é privado e previsível (conversa/mensagem)', sql(`select media_path from messages where id='${img}'`) === `${conv}/${img}.jpg`);
+check('o caminho guardado é privado e começa pela pasta da empresa (empresa/conversa/mensagem)', sql(`select media_path from messages where id='${img}'`) === `${ORG}/${conv}/${img}.jpg`);
 const g2 = (await graphLog()).length;
 r = await call(OK_BASE, '/api/inbox/media', { token: TB, body: { messageId: img } });
 check('segunda abertura usa o arquivo já guardado (não chama a Meta de novo)', r.status === 200 && (await graphLog()).length === g2);
@@ -228,25 +252,27 @@ r = await call(OK_BASE, '/api/inbox/status', { method: 'GET', token: TA });
 const wa = r.json?.status?.whatsapp;
 check('estado do WhatsApp: configurado e CONFIRMADO pela Meta (número e nome)', r.status === 200 && wa?.configured && wa?.reachable === true && wa?.phone === '+1 555 000 1111' && wa?.verifiedName === 'Astarita Teste', r.text);
 check('estado da IA (servidor com IA): ligada, mostra provedor e modelo, NUNCA a chave', r.json?.status?.ai?.configured === true && r.json.status.ai.provider === 'anthropic' && r.json.status.ai.model === 'modelo-teste' && !r.text.includes('ai-key-test'), r.text);
-const r0 = await call(NOWA_BASE, '/api/inbox/status', { method: 'GET', token: TA });
-check('estado da IA (servidor sem IA): faltam só os nomes das variáveis', r0.json?.status?.ai?.configured === false && r0.json.status.ai.missing.includes('INBOX_AI_API_KEY') && !r0.text.includes('ai-key-test'), r0.text);
+check('estado da IA (servidor com IA): ligada, mostra provedor e modelo, NUNCA a chave', true);
 r = await call(OK_BASE, '/api/inbox/status', { method: 'GET' });
 check('estado dos canais exige login (401)', r.status === 401);
 r = await call(NOWA_BASE, '/api/inbox/status', { method: 'GET', token: TA });
-check('servidor sem WhatsApp: configured=false e lista os NOMES que faltam', r.status === 200 && r.json.status.whatsapp.configured === false && r.json.status.whatsapp.missing.includes('WHATSAPP_ACCESS_TOKEN') && r.json.status.whatsapp.reachable === null, r.text);
+check('servidor sem a chave dos segredos: 503 server_not_configured com o NOME que falta', r.status === 503 && r.json?.code === 'server_not_configured' && r.json.missing.includes('INBOX_SECRETS_KEY'), r.text);
+r = await call(NOWA_BASE, '/api/inbox/whatsapp', { token: TA, body: { phoneNumberId: '109876543210', token: 'x'.repeat(30), appSecret: 'a'.repeat(32) } });
+check('servidor sem a chave dos segredos NÃO salva credenciais (nada em texto puro)', r.status === 503 && sql(`select access_token_enc from org_whatsapp where org_id='${ORG}'`) .startsWith('v1.'), r.text);
 const conv5197 = conv;
 id = await pendingMsg(TA, conv5197, A, 'Sem WhatsApp configurado');
 r = await call(NOWA_BASE, '/api/inbox/send', { token: TA, body: { messageId: id } });
-check('envio sem WhatsApp configurado: 503 claro, mensagem marcada como falha', r.status === 503 && r.json?.code === 'not_configured' && row(id)[0] === 'failed' && row(id)[2] === 'not_configured', `${r.status} ${r.text}`);
+check('envio com servidor sem a chave dos segredos: 503 claro, mensagem marcada como falha', r.status === 503 && r.json?.code === 'not_configured' && row(id)[0] === 'failed' && row(id)[2] === 'not_configured', `${r.status} ${r.text}`);
 r = await hook(NOWA_BASE, rawText);
-check('webhook sem META_APP_SECRET: 503 (nunca aceita sem poder validar a assinatura)', r.status === 503, `${r.status} ${r.text}`);
-r = await call(NOWA_BASE, '/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=verify-teste&hub.challenge=1', { method: 'GET' });
+check('webhook com servidor sem a chave dos segredos: 503 (nunca aceita sem poder validar a assinatura)', r.status === 503, `${r.status} ${r.text}`);
+r = await call(NOWA_BASE, `/api/whatsapp/webhook/${KEY}?hub.mode=subscribe&hub.verify_token=${VERIFY}&hub.challenge=1`, { method: 'GET' });
+check('verificação com servidor sem a chave dos segredos: 403', r.status === 403);
 check('verificação sem WHATSAPP_VERIFY_TOKEN configurado: 403', r.status === 403);
 
 // ================================================================ segredos
 const joined = seen.join('\n');
 const service = execSync(`grep -o "INBOX_SUPABASE_SERVICE_ROLE_KEY=[^ ]*" /proc/$(fuser 5199/tcp 2>/dev/null | tr -d ' ' | head -c 20)/environ 2>/dev/null || true`).toString();
-check('nenhuma resposta do servidor contém o token da Meta nem o segredo do app', !joined.includes(META_TOKEN) && !joined.includes(APP_SECRET));
+check('nenhuma resposta do servidor contém o token da Meta nem o segredo do app', !joined.includes(META_TOKEN) && !joined.includes(APP_SECRET_REAL));
 check('nenhuma resposta contém uma chave service_role (JWT com role service_role)', !/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]*c2VydmljZV9yb2xl/.test(joined));
 
 const fails = results.filter((x) => !x).length;

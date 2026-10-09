@@ -57,6 +57,15 @@ Sete etapas: Novo lead, Em conversa, Reunião marcada, Proposta enviada, Negocia
 Arraste o cartão para mudar a etapa (no celular, use o seletor dentro do cartão). Dá para trocar o responsável, buscar,
 adicionar um contato ao funil e remover do funil sem apagar o contato.
 
+## Equipe (Configurações > Equipe com acesso)
+O proprietário e os administradores adicionam pessoas: informam nome e e-mail, e o sistema mostra uma **senha temporária uma única vez**. Entregue à pessoa
+por um canal seguro; ela troca a senha em `/inbox/definir-senha`. Dá para **desativar** quem saiu (perde o acesso na hora), **reativar** e gerar **nova senha**.
+O plano limita quantas pessoas ficam ativas ao mesmo tempo. Níveis: **proprietário** (tudo), **administrador** (equipe e WhatsApp), **atendente** (só atende).
+
+## Plataforma (só para o dono do sistema)
+O menu **Plataforma** lista as empresas clientes com pessoas, contatos, conversas, uso da IA no mês e estado do WhatsApp. Ali você cria uma empresa nova (nome, plano, dono),
+muda plano e limites, e **suspende** uma empresa (ninguém dela entra, e ela não recebe mensagens). Veja `docs/SAAS.md`.
+
 ## Configurações
 - **Equipe com acesso:** quem pode entrar.
 - **Conectar o WhatsApp:** passos que ficam verdes sozinhos conforme a configuração é feita, com o endereço do webhook para copiar e a lista de variáveis do servidor (só os nomes). Guia da Meta em `docs/WHATSAPP-CONEXAO.md`.

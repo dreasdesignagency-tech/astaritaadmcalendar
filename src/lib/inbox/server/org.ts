@@ -22,8 +22,11 @@ export type OrgWhatsApp = {
 };
 
 export class SecretsKeyError extends Error {
+  /** Usado por configErrorResponse (admin.ts) sem importar este arquivo. */
+  readonly missing = ["INBOX_SECRETS_KEY"];
   constructor() {
     super("INBOX_SECRETS_KEY ausente ou inválida");
+    this.name = "SecretsKeyError";
   }
 }
 

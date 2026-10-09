@@ -27,10 +27,11 @@ end $$;
 create event trigger ensure_rls on ddl_command_end when tag in ('CREATE TABLE','CREATE TABLE AS','SELECT INTO') execute function public.rls_auto_enable();
 SQL
     cat inbox-db/supabase/migrations/20261008000000_inbox_install.sql
-    cat inbox-db/supabase/migrations/20261009001027_inbox_hardening.sql inbox-db/supabase/migrations/20261009001210_inbox_whatsapp_notes.sql
+    cat inbox-db/supabase/migrations/20261009001027_inbox_hardening.sql inbox-db/supabase/migrations/20261009001210_inbox_whatsapp_notes.sql inbox-db/supabase/migrations/20261010000000_inbox_multitenant.sql
     cat <<'SQL'
 insert into auth.users(id,email) values ('00000000-0000-0000-0000-00000000000a','andreas@t'),('00000000-0000-0000-0000-00000000000b','juline@t'),('00000000-0000-0000-0000-00000000000c','intruso@t');
-insert into profiles(id,full_name,role) values ('00000000-0000-0000-0000-00000000000a','Andreas','director'),('00000000-0000-0000-0000-00000000000b','Juline','ceo');
+insert into profiles(id,full_name,role,org_id,access,is_platform_admin) select '00000000-0000-0000-0000-00000000000a','Andreas','director',o.id,'owner',true from organizations o where o.slug='astarita';
+insert into profiles(id,full_name,role,org_id,access,is_platform_admin) select '00000000-0000-0000-0000-00000000000b','Juline','ceo',o.id,'owner',false from organizations o where o.slug='astarita';
 SQL
   } | su postgres -c "psql -q -v ON_ERROR_STOP=1 -d inboxe2e" 2>&1 ) \
     || { echo "$out" | grep -v -E "NOTICE|WARNING|HINT"; echo "FALHA ao montar o banco de teste"; exit 1; }
@@ -53,18 +54,20 @@ CONF
     for f in gateway-proxy graph-mock ai-mock; do nohup node tests/e2e/$f.mjs > "$RUN/$f.log" 2>&1 & echo $! >> "$RUN/pids"; done
     SERVICE=$(jwt service_role)
     INBOX="VITE_INBOX_SUPABASE_URL=http://127.0.0.1:3002 VITE_INBOX_SUPABASE_PUBLISHABLE_KEY=sb_publishable_inbox INBOX_SUPABASE_URL=http://127.0.0.1:3002 INBOX_SUPABASE_SERVICE_ROLE_KEY=$SERVICE"
-    WA="WHATSAPP_ACCESS_TOKEN=token-de-teste-da-meta WHATSAPP_PHONE_NUMBER_ID=PHONE_ID WHATSAPP_VERIFY_TOKEN=verify-teste META_APP_SECRET=segredo-do-app-teste WHATSAPP_API_VERSION=v21.0 WHATSAPP_GRAPH_BASE_URL=http://127.0.0.1:3004"
+    WA="WHATSAPP_GRAPH_BASE_URL=http://127.0.0.1:3004 INBOX_SECRETS_KEY=$(node -e 'console.log(require("crypto").randomBytes(32).toString("base64"))')"
     AI="INBOX_AI_PROVIDER=anthropic INBOX_AI_API_KEY=ai-key-test INBOX_AI_MODEL=modelo-teste INBOX_AI_BASE_URL=http://127.0.0.1:3005"
-    # 5199: tudo configurado. 5198: Inbox sem variáveis (tela "não configurado"). 5197: servidor com Supabase mas SEM WhatsApp/IA.
+    # 5199: servidor completo (chave dos segredos, IA, Graph simulada). 5198: Inbox sem variáveis (tela "não configurado"). 5197: servidor com Supabase mas SEM chave dos segredos e SEM IA.
     (env $INBOX $WA $AI ${EXTRA_5199:-} nohup npx vite dev --host 127.0.0.1 --port 5199 > "$RUN/dev-5199.log" 2>&1 & echo $! >> "$RUN/pids")
     (nohup npx vite dev --host 127.0.0.1 --port 5198 > "$RUN/dev-5198.log" 2>&1 & echo $! >> "$RUN/pids")
     (env $INBOX nohup npx vite dev --host 127.0.0.1 --port 5197 > "$RUN/dev-5197.log" 2>&1 & echo $! >> "$RUN/pids")
+    # 5196: com a chave dos segredos e Graph simulada, mas SEM IA (tela "IA não ligada").
+    (env $INBOX $WA nohup npx vite dev --host 127.0.0.1 --port 5196 > "$RUN/dev-5196.log" 2>&1 & echo $! >> "$RUN/pids")
     sleep 14; echo "pilha no ar ($RUN)" ;;
   down)
     [ -f "$RUN/pids" ] && xargs -r kill < "$RUN/pids" 2>/dev/null || true; rm -f "$RUN/pids"
     pkill -x postgrest 2>/dev/null || true
     # vite roda como filhos de npm exec: encerra pelas portas
-    for port in 5197 5198 5199; do fuser -k $port/tcp 2>/dev/null || true; done
+    for port in 5196 5197 5198 5199; do fuser -k $port/tcp 2>/dev/null || true; done
     echo "pilha derrubada" ;;
   *) echo "uso: stack.sh up|down|reset-db"; exit 1 ;;
 esac

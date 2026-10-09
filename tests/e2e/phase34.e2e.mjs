@@ -7,19 +7,24 @@ import { readFileSync } from 'node:fs';
 
 const S = process.argv[2] ?? '.';
 const BASE = 'http://127.0.0.1:5199', NOWA = 'http://127.0.0.1:5197', GRAPH = 'http://127.0.0.1:3004';
-const SECRET = 'e2e-secret-e2e-secret-e2e-secret-123456', APP_SECRET = 'segredo-do-app-teste';
+const SECRET = 'e2e-secret-e2e-secret-e2e-secret-123456', APP_SECRET = 'astaritaappsecret0123456789abcdef';
 const A = '00000000-0000-0000-0000-00000000000a', B = '00000000-0000-0000-0000-00000000000b';
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (sub, email) => { const h = b64({ alg: 'HS256', typ: 'JWT' }), p = b64({ sub, email, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 }); return `${h}.${p}.${createHmac('sha256', SECRET).update(`${h}.${p}`).digest('base64url')}`; };
-const sql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: q }).toString().trim();
+const sql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: `do $$ begin perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false); end $$;\n${q}` }).toString().trim();
 const fx = (n) => readFileSync(`tests/fixtures/whatsapp/${n}.json`, 'utf8');
-const hook = (raw) => fetch(`${BASE}/api/whatsapp/webhook`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-hub-signature-256': `sha256=${createHmac('sha256', APP_SECRET).update(raw).digest('hex')}` }, body: raw });
+let KEY = '';
+const hook = (raw) => fetch(`${BASE}/api/whatsapp/webhook/${KEY}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-hub-signature-256': `sha256=${createHmac('sha256', APP_SECRET).update(raw).digest('hex')}` }, body: raw });
 const graphPosts = async () => (await (await fetch(`${GRAPH}/__requests`)).json()).filter((r) => r.method === 'POST' && /\/messages$/.test(r.path));
 const results = [];
 const check = (name, ok, extra = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '  -> ' + extra}`); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn()) return true; await sleep(300); } return fn(); };
 
+// WhatsApp da Astarita configurado pelo caminho real (a API que a tela usa)
+const TOK = jwt(A, 'andreas@t');
+await fetch(`${BASE}/api/inbox/whatsapp`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${TOK}` }, body: JSON.stringify({ phoneNumberId: '109876543210', version: 'v21.0', token: 'token-de-teste-da-meta', appSecret: APP_SECRET }) });
+KEY = (await (await fetch(`${BASE}/api/inbox/whatsapp`, { headers: { authorization: `Bearer ${TOK}` } })).json()).webhookKey;
 await fetch(`${GRAPH}/__reset`);
 sql(`truncate contacts, tags, webhook_events, quick_replies, reminders, internal_notes cascade; update profiles set active=true;`);
 

@@ -296,5 +296,23 @@ begin
   assert not exists (select 1 from information_schema.columns where table_schema = 'public' and column_name = 'org_id' and is_nullable = 'YES' and table_name <> 'webhook_events'), '9: org_id é obrigatório em todas as tabelas (exceto webhook_events)';
 end $$;
 
+-- ---------------------------------------------------------------- 10) apagar uma empresa leva tudo dela junto (e só dela)
+do $$
+declare c uuid := (select id from public.organizations where slug = 'empresa-c'); n int;
+begin
+  insert into public.contacts (org_id, name, phone) values (c, 'Contato C', '5511900004444');
+  perform public.inbox_ingest_inbound(c, '5511900005555', 'Fulano C', 'wamid.C1', 'text', 'oi', null, null, now());
+  assert (select count(*) from public.contacts where org_id = c) = 2, '10: dados da empresa C criados';
+  begin delete from public.organizations where id = c; assert false, '10: empresa com pessoas não pode ser apagada sem antes remover as pessoas'; exception when foreign_key_violation then null; end;
+  delete from public.profiles where org_id = c;
+  delete from public.organizations where id = c;
+  assert (select count(*) from public.pipeline_stages where org_id = c) = 0, '10: etapas apagadas junto';
+  assert (select count(*) from public.contacts where org_id = c) = 0, '10: contatos apagados junto';
+  assert (select count(*) from public.messages where org_id = c) = 0, '10: mensagens apagadas junto';
+  assert (select count(*) from public.knowledge_base where org_id = c) = 0, '10: base apagada junto';
+  assert (select count(*) from public.org_whatsapp where org_id = c) = 0, '10: credenciais apagadas junto';
+  assert (select count(*) from public.contacts where org_id = (select id from public.organizations where slug = 'astarita')) >= 2, '10: dados da Astarita intactos';
+end $$;
+
 select 'TODOS OS TESTES MULTIEMPRESA PASSARAM' as resultado;
 rollback;

@@ -4,18 +4,20 @@ import { createHmac } from 'node:crypto';
 import { execSync } from 'node:child_process';
 
 const S = process.argv[2] ?? '.';
-const BASE = 'http://127.0.0.1:5199', NOAI = 'http://127.0.0.1:5197', AI = 'http://127.0.0.1:3005', GRAPH = 'http://127.0.0.1:3004';
+const BASE = 'http://127.0.0.1:5199', NOAI = 'http://127.0.0.1:5196', AI = 'http://127.0.0.1:3005', GRAPH = 'http://127.0.0.1:3004';
 const SECRET = 'e2e-secret-e2e-secret-e2e-secret-123456';
 const A = '00000000-0000-0000-0000-00000000000a';
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (sub, email) => { const h = b64({ alg: 'HS256', typ: 'JWT' }), p = b64({ sub, email, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 }); return `${h}.${p}.${createHmac('sha256', SECRET).update(`${h}.${p}`).digest('base64url')}`; };
-const sql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: q }).toString().trim();
+const sql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: `do $$ begin perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false); end $$;\n${q}` }).toString().trim();
 const results = [];
 const check = (name, ok, extra = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '  -> ' + extra}`); };
 const posts = async () => (await (await fetch(`${GRAPH}/__requests`)).json()).filter((r) => r.method === 'POST' && /\/messages$/.test(r.path)).length;
 
 await fetch(`${GRAPH}/__reset`); await fetch(`${AI}/__reset`);
 sql(`truncate contacts, ai_suggestions, quick_replies cascade; update profiles set active=true; update knowledge_base set content='' where section in ('servicos','faq');`);
+// WhatsApp da Astarita configurado pelo caminho real (API), para a tela mostrar "Conectado"
+await fetch(`${BASE}/api/inbox/whatsapp`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${jwt(A, 'andreas@t')}` }, body: JSON.stringify({ phoneNumberId: '109876543210', version: 'v21.0', token: 'token-de-teste-da-meta', appSecret: 'astaritaappsecret0123456789abcdef' }) });
 const contact = sql(`insert into contacts(name, phone) values ('Maria Souza','5511999998888') returning id`);
 const conv = sql(`insert into conversations(contact_id, status, last_inbound_at, last_message_at, last_message_preview, unread_count) values ('${contact}','waiting', now(), now(), 'Quanto custa?', 1) returning id`);
 sql(`insert into messages(conversation_id, direction, type, body, status) values ('${conv}','in','text','Quanto custa uma identidade visual?','received')`);
@@ -32,10 +34,10 @@ async function open(base, vp = { width: 1440, height: 900 }) {
 // ================================================================ conversa com IA ligada
 const { ctx, page, errors } = await open(BASE);
 await page.goto(`${BASE}/inbox?c=${conv}`);
-const panel = page.getByRole('region', { name: 'Assistente Astarita' });
+const panel = page.getByRole('region', { name: 'Assistente de IA' });
 await panel.waitFor({ timeout: 20000 });
 const btn = (n) => panel.getByRole('button', { name: n, exact: true });
-await page.waitForFunction(() => !document.querySelector('[aria-label="Assistente Astarita"] button:disabled'), null, { timeout: 15000 }).catch(() => {});
+await page.waitForFunction(() => !document.querySelector('[aria-label="Assistente de IA"] button:disabled'), null, { timeout: 15000 }).catch(() => {});
 check('IA ligada: botões habilitados e sem aviso de "não configurada"', await btn('Sugerir resposta').isEnabled() && (await panel.getByText('A IA ainda não foi ligada').count()) === 0);
 
 await btn('Sugerir resposta').click();
@@ -83,7 +85,7 @@ check('ajuste de tom sem texto avisa e não chama a IA', true);
 sql(`insert into messages(conversation_id, direction, type, body, status) values ('${conv}','in','text','FORCE_500','received')`);
 await page.waitForTimeout(500);
 await page.reload(); await panel.waitFor({ timeout: 20000 });
-await page.waitForFunction(() => !document.querySelector('[aria-label="Assistente Astarita"] button:disabled'), null, { timeout: 15000 }).catch(() => {});
+await page.waitForFunction(() => !document.querySelector('[aria-label="Assistente de IA"] button:disabled'), null, { timeout: 15000 }).catch(() => {});
 await btn('Sugerir resposta').click();
 await page.getByText('A IA está indisponível no momento').waitFor({ timeout: 15000 });
 check('erro da IA: aviso claro em português e o painel continua utilizável', await btn('Sugerir resposta').isEnabled());
@@ -91,29 +93,30 @@ await page.screenshot({ path: `${S}/ai-painel.png` });
 
 // ================================================================ Configurações
 await page.goto(`${BASE}/inbox/configuracoes`);
-await page.getByText('Conhecimento da Astarita').waitFor({ timeout: 20000 });
-await page.getByText(/Ligado \(anthropic/).waitFor({ timeout: 15000 }).catch(() => {});
-check('configurações: IA aparece como ligada com provedor e modelo', (await page.getByText(/Ligado \(anthropic, modelo modelo-teste\)/).count()) === 1);
-check('configurações: WhatsApp aparece conectado ao número', (await page.getByText(/Conectado ao número/).count()) === 1);
+await page.getByText('Conhecimento da empresa').waitFor({ timeout: 20000 });
+await page.getByText(/Ligado\. A IA só sugere/).waitFor({ timeout: 15000 }).catch(() => {});
+check('configurações: IA aparece como ligada, com o limite do plano', (await page.getByText(/Ligado\. A IA só sugere.*Limite do plano: 2000/).count()) === 1);
+await page.getByText(/Conectado ao número/).first().waitFor({ timeout: 20000 }).catch(() => {});
+check('configurações: WhatsApp aparece conectado ao número', (await page.getByText(/Conectado ao número/).count()) >= 1);
 const kb = page.getByLabel('Serviços', { exact: true });
 check('as 8 seções da base aparecem; serviços vem vazio (nada inventado)', (await page.locator('textarea[id^="kb-"]').count()) === 8 && (await kb.inputValue()) === '');
 await kb.fill('Identidade visual, conteúdo e audiovisual.');
 await page.getByRole('button', { name: 'Salvar Serviços' }).click();
 await page.getByText('Serviços salvo.').waitFor({ timeout: 8000 });
 check('salvar grava no banco com o autor', sql(`select content||'|'||updated_by from knowledge_base where section='servicos'`) === `Identidade visual, conteúdo e audiovisual.|${A}`);
-await page.reload(); await page.getByText('Conhecimento da Astarita').waitFor({ timeout: 20000 });
+await page.reload(); await page.getByText('Conhecimento da empresa').waitFor({ timeout: 20000 });
 check('depois de recarregar, o texto continua', (await page.getByLabel('Serviços', { exact: true }).inputValue()) === 'Identidade visual, conteúdo e audiovisual.');
 await page.screenshot({ path: `${S}/ai-config.png`, fullPage: true });
 
 // ================================================================ servidor sem IA
 const b = await open(NOAI);
 await b.page.goto(`${NOAI}/inbox?c=${conv}`);
-const p2 = b.page.getByRole('region', { name: 'Assistente Astarita' });
+const p2 = b.page.getByRole('region', { name: 'Assistente de IA' });
 await p2.getByText('A IA ainda não foi ligada').waitFor({ timeout: 20000 });
 check('sem IA: aviso honesto e botões desabilitados', await p2.getByRole('button', { name: 'Sugerir resposta' }).isDisabled());
 await b.page.goto(`${NOAI}/inbox/configuracoes`);
 await b.page.getByText(/Falta configurar no servidor: INBOX_AI_PROVIDER/).waitFor({ timeout: 20000 });
-check('sem IA: configurações mostram o NOME do que falta (sem valores)', true);
+check('sem IA: configurações mostram o NOME do que falta (só para o dono da plataforma)', true);
 
 check('nenhum erro de JavaScript na página', errors.length === 0 && b.errors.length === 0, errors.concat(b.errors).join(' | '));
 await browser.close();

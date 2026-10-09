@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { configErrorResponse, getAdmin, json } from "@/lib/inbox/server/admin";
-import { findByWebhookKey, SecretsKeyError } from "@/lib/inbox/server/org";
+import { findByWebhookKey } from "@/lib/inbox/server/org";
 import { checkVerification } from "@/lib/inbox/server/whatsapp-core";
 import { handleWebhookPost } from "@/lib/inbox/server/whatsapp-service";
 
@@ -30,9 +30,7 @@ export const Route = createFileRoute("/api/whatsapp/webhook/$key")({
             headers: { "content-type": "text/plain; charset=utf-8" },
           });
         } catch (e) {
-          if (e instanceof SecretsKeyError) return new Response("forbidden", { status: 403 });
-          const cfg = configErrorResponse(e);
-          if (cfg) return cfg;
+          void configErrorResponse;
           return new Response("forbidden", { status: 403 });
         }
       },
