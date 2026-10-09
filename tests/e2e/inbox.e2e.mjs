@@ -22,6 +22,7 @@ async function session(browser, sub, email, vp = { width: 1440, height: 900 }) {
 }
 const pick = async (page, label, option) => { await page.getByRole('combobox', { name: label }).click(); await page.getByRole('option', { name: option, exact: true }).click(); };
 
+sql(`truncate contacts, tags, webhook_events, quick_replies, reminders, internal_notes, ai_suggestions cascade; update profiles set active=true;`);
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 
 // 1. Sem perfil: acesso restrito

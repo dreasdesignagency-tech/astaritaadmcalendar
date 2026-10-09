@@ -100,7 +100,7 @@ export function PageHeader({
 
   return (
     <header className="inbox-surface flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3 rounded-[2rem] px-5 py-4 sm:px-7">
-      <div className="min-w-0 flex-1">
+      <div className="min-w-[13rem] flex-1">
         <h1 className="truncate font-display text-xl font-semibold tracking-tight sm:text-2xl">
           {title}
         </h1>

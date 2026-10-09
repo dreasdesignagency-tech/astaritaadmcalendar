@@ -52,6 +52,20 @@ e definir backup antes de dados reais (o painel mostrava "No backups").
    se o convite não chegar, o caminho é configurar SMTP próprio.
 4. Quem já tem conta mas não tem senha usa "Definir ou recuperar senha" na tela de entrada.
 
+### Servidor (WhatsApp e IA)
+As rotas `/api/whatsapp/webhook` e `/api/inbox/*` rodam no servidor e leem estas variáveis (modelo em `.env.example`).
+Elas **nunca** levam o prefixo `VITE_` e nunca vão para o GitHub:
+
+| Variável | Para quê |
+|---|---|
+| `INBOX_SUPABASE_URL`, `INBOX_SUPABASE_SERVICE_ROLE_KEY` | o servidor gravar mensagens recebidas e confirmar envios (ignora a RLS: só no servidor) |
+| `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION` | enviar pela Cloud API |
+| `WHATSAPP_VERIFY_TOKEN`, `META_APP_SECRET` | verificar o webhook e validar a assinatura de cada evento |
+| `INBOX_AI_PROVIDER` (`anthropic` ou `openai`), `INBOX_AI_API_KEY`, `INBOX_AI_MODEL` | Assistente Astarita (opcional) |
+
+Na Meta, o webhook aponta para `https://SEU-ENDERECO/api/whatsapp/webhook`, com o mesmo verify token. Isso exige um endereço
+público em HTTPS: não funciona em `localhost`. Sem as variáveis, o Inbox funciona normalmente e as telas dizem o que falta.
+
 ## Rodar localmente
 ```bash
 bun install        # ou npm install
@@ -62,46 +76,51 @@ bun run dev
 | Fase | Escopo | Estado |
 |---|---|---|
 | 1 | Fundação: banco, RLS, layout, design system | feita |
-| 2 | Conversas, contatos, histórico, filtros, responsáveis, tempo real | feita (sem envio, que é da Fase 4) |
-| integração | Cliente, login e sessão próprios do Inbox | código pronto; **depende de configuração real** (ver abaixo) |
-| 3 | Funil, respostas rápidas, notas, lembretes | pendente |
-| 4 | WhatsApp Cloud API oficial | pendente |
-| 5 | IA e base de conhecimento | pendente |
-| 6 | Qualidade e produção | pendente |
+| 2 | Conversas, contatos, histórico, filtros, responsáveis, tempo real | feita |
+| integração | Cliente, login e sessão próprios do Inbox | código pronto; **depende de configuração real** |
+| 3 | Funil, respostas rápidas, observações internas, lembretes | feita, testada em ambiente local |
+| 4 | WhatsApp Cloud API oficial | código pronto, testado contra uma Meta **simulada**; **não testado com a Meta real** |
+| 5 | Assistente de IA e base de conhecimento | código pronto, testado contra uma IA **simulada**; **não testado com provedor real** |
+| 6 | Qualidade e produção | em andamento (ver `docs/GUIA-DE-USO.md` e o relatório de validação) |
 
-## O que o Inbox faz hoje
+## O que o Inbox faz
+Resumo por tela em `docs/GUIA-DE-USO.md`. Pontos técnicos:
 
-**Contatos** (`/inbox/contatos`): criar, editar, buscar (nome, empresa, Instagram, etiqueta, parte do telefone), filtrar
-(categoria, responsável, etiqueta), iniciar/abrir conversa. Telefone normalizado (`src/lib/inbox/phone.ts`); duplicidade
-considera o nono dígito brasileiro. Não há exclusão de contatos nesta fase.
+- **Contatos / conversas:** telefone normalizado (`phone.ts`, considera o nono dígito); resolver, reabrir e atribuir só gravam se a
+  conversa não mudou desde que a tela carregou (`updated_at`).
+- **Tempo real** (`realtime.ts`): Supabase Realtime só invalida o cache; os dados vêm de consultas sob RLS. Se cair, aviso e consulta a cada 15 s.
+- **Funil:** 7 etapas; arrastar persiste a posição; alternativa por seletor para celular.
+- **Envio** (`messaging.ts` + `/api/inbox/send`): o navegador grava a mensagem como `pending` (RLS) e o servidor envia; só ele
+  confirma o status. Um "claim" no banco impede envio duplicado. Janela de 24 h conferida de novo no servidor.
+- **Webhook** (`/api/whatsapp/webhook`): assinatura HMAC sobre o corpo cru, eventos idempotentes (`webhook_events`),
+  status só avançam, status que chega antes do id é aplicado depois, eco do app (coexistência) tratado.
+- **Mídia:** baixada sob demanda para o bucket privado `inbox-media`; a tela recebe URL assinada de 5 minutos.
+- **IA** (`server/ai-*.ts`, `/api/inbox/ai`): provedor Anthropic ou compatível com OpenAI, chamado por `fetch` no servidor
+  (escolha deliberada: sem dependência nova, roda em Workers e não amarra um provedor). A IA só devolve texto; falas do cliente
+  entram no prompt como dados, com as tags neutralizadas; limite de 12 pedidos por minuto por pessoa; recusa, corte e erro viram
+  mensagens em português; toda sugestão é gravada em `ai_suggestions`. Nada envia mensagem sozinho.
 
-**Caixa de entrada** (`/inbox`): lista com filtros e busca, histórico de mensagens, atribuir responsável, resolver e reabrir,
-edição do contato pelo painel, "Novo contato" que já abre a conversa. Abrir a conversa zera as não lidas.
-Resolver, reabrir e atribuir só gravam se a conversa não mudou desde que a tela carregou (`updated_at`).
-
-**Tempo real** (`src/lib/inbox/realtime.ts`): assinatura Supabase Realtime em `conversations`, `messages`, `contacts`,
-`contact_tags`, `tags`, pelo cliente do Inbox. Os eventos só invalidam o cache; os dados vêm de consultas sob RLS.
-Se a conexão cair, aparece um aviso e a tela consulta a cada 15 s até reconectar.
-
-**Ainda não existe:** envio de mensagens (campo desabilitado até a Fase 4), anexos, respostas rápidas, funil com cartões,
-lembretes, notas, IA.
+**Formatos da Meta:** escritos conforme o conhecimento do autor. A documentação oficial não pôde ser aberta durante o
+desenvolvimento (o ambiente bloqueia `developers.facebook.com`). Conferir com a Meta real é parte da validação com credenciais.
 
 ## Testes
-
 ```bash
-npm test                 # unitários (Node, sem dependências): 26 testes
+npm test      # unitários (Node, sem dependências): 65 testes
 ```
-Ponta a ponta no navegador: ver `tests/e2e/README.md`. Ambiente local com Postgres + PostgREST + RLS, usando o SQL exato
-instalado, GoTrue **simulado** e Realtime **ausente** (o app cai no modo de contingência).
+Os testes de ponta a ponta usam `tests/e2e/stack.sh up` (Postgres + PostgREST com o SQL exato instalado e RLS, GoTrue, Storage,
+Meta e IA **simulados**, Realtime **ausente**). Ver `tests/e2e/README.md`.
 
 | O quê | Resultado |
 |---|---|
-| Unitários: telefone, status, configuração (inclui chave secreta e URL do calendário), paginação de usuários, isolamento por código | 26/26 |
-| SQL exato aprovado aplicado em banco limpo com privilégios padrão do Supabase; reaplicar aborta | ok |
-| E2E funcional (contatos, conversas, filtros, responsáveis, conflito, RLS, celular) | 37/37 |
+| Unitários (telefone, status, configuração, usuários, isolamento por código, funil, lembretes, WhatsApp, IA) | 65/65 |
+| Banco: SQL aprovado em banco limpo, reaplicar aborta, hardening e migration de notas com reversão | ok |
+| E2E contatos/conversas/filtros/responsáveis/RLS/celular | 37/37 |
 | E2E isolamento, login, definir senha, configuração ausente, regressão do calendário | 29/29 |
-| `tsc --noEmit`, `vite build` (também sem nenhuma variável do Inbox) | ok |
+| API WhatsApp (assinatura, idempotência, status, envio, concorrência, janela, mídia, vazamento de segredo) | 76/76 |
+| E2E funil, respostas rápidas, notas, lembretes, envio e janela (Meta simulada) | 41/41 |
+| API da IA (prompt, base de conhecimento, injeção, erros, limite, não envia nada) | 35/35 |
+| E2E do Assistente e da base de conhecimento (IA simulada) | 22/22 |
 
-**Não coberto por teste (depende de configuração real):** login com GoTrue de verdade e convite/e-mail, Supabase Realtime
-de verdade entre duas sessões, o projeto Astarita Inbox real (nenhuma conexão a ele foi feita a partir do código ou dos testes),
-reconciliação do ledger, tipos gerados reais, backup, e tudo do WhatsApp.
+**Não coberto por teste (depende de configuração real):** login com GoTrue de verdade e e-mail de convite, Realtime de verdade
+entre duas sessões, o projeto Supabase real (nenhuma conexão a ele foi feita pelo código ou pelos testes), a Meta real
+(envio, recebimento, assinatura, modelos, número de produção), um provedor de IA real (qualidade das respostas), backup e publicação.

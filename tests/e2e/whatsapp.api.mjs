@@ -34,6 +34,7 @@ async function pendingMsg(token, convId, userId, body, extra = {}) {
 const row = (id) => sql(`select status||'|'||coalesce(wa_message_id,'')||'|'||coalesce(error_code,'')||'|'||coalesce(error_message,'') from messages where id='${id}'`).split('|');
 
 await fetch(`${GRAPH}/__reset`);
+sql(`truncate contacts, tags, webhook_events, quick_replies, reminders, internal_notes, ai_suggestions cascade; update profiles set active=true;`);
 
 // ================================================================ webhook: verificação e assinatura
 let r = await call(OK_BASE, '/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=verify-teste&hub.challenge=987654', { method: 'GET' });
@@ -226,7 +227,9 @@ check('documento PDF também é guardado e servido', r.status === 200 && sql(`se
 r = await call(OK_BASE, '/api/inbox/status', { method: 'GET', token: TA });
 const wa = r.json?.status?.whatsapp;
 check('estado do WhatsApp: configurado e CONFIRMADO pela Meta (número e nome)', r.status === 200 && wa?.configured && wa?.reachable === true && wa?.phone === '+1 555 000 1111' && wa?.verifiedName === 'Astarita Teste', r.text);
-check('estado da IA sem configuração: faltam só os nomes das variáveis', r.json?.status?.ai?.configured === false && r.json.status.ai.missing.includes('INBOX_AI_API_KEY'));
+check('estado da IA (servidor com IA): ligada, mostra provedor e modelo, NUNCA a chave', r.json?.status?.ai?.configured === true && r.json.status.ai.provider === 'anthropic' && r.json.status.ai.model === 'modelo-teste' && !r.text.includes('ai-key-test'), r.text);
+const r0 = await call(NOWA_BASE, '/api/inbox/status', { method: 'GET', token: TA });
+check('estado da IA (servidor sem IA): faltam só os nomes das variáveis', r0.json?.status?.ai?.configured === false && r0.json.status.ai.missing.includes('INBOX_AI_API_KEY') && !r0.text.includes('ai-key-test'), r0.text);
 r = await call(OK_BASE, '/api/inbox/status', { method: 'GET' });
 check('estado dos canais exige login (401)', r.status === 401);
 r = await call(NOWA_BASE, '/api/inbox/status', { method: 'GET', token: TA });

@@ -1,33 +1,25 @@
 # Testes de ponta a ponta do Inbox (local)
 
-Rodam o app no navegador contra um Postgres local com **o SQL exato instalado** (`inbox-db/supabase/migrations/…_inbox_install.sql`),
-PostgREST (o mesmo servidor de API do Supabase), JWT assinado e RLS ligada. Não usam nenhum projeto Supabase real.
+Rodam o app no navegador contra um Postgres local com **o SQL exato instalado** (baseline + `inbox-db/proposed/*.sql`), PostgREST
+(o mesmo servidor de API do Supabase), JWT assinado e RLS ligada. Não usam nenhum projeto Supabase real e não falam com a Meta
+nem com provedor de IA de verdade.
 
-Limites do ambiente: o GoTrue (login) é **simulado** pelo `gateway-proxy.mjs` (aceita só `andreas@t`/`juline@t` com a senha de teste)
-e **não há Realtime** (o app cai no modo de contingência, que é o que se valida). O projeto do calendário é um mock somente leitura.
+Simulados: GoTrue/Storage (`gateway-proxy.mjs`), calendário (`calendar-mock.mjs`), Graph API da Meta (`graph-mock.mjs`, porta 3004)
+e provedor de IA (`ai-mock.mjs`, porta 3005). **Ausente:** Realtime (o app cai no modo de contingência, que é o que se valida).
+Os testes validam o NOSSO lado do contrato, não a Meta nem um modelo de IA reais.
 
-Pré-requisitos: PostgreSQL 16, binário do PostgREST, Playwright com Chromium.
+Pré-requisitos: PostgreSQL 16 (usuário `postgres` via `su`), binário do PostgREST, Node 22, Playwright com Chromium.
 
 ```bash
-# 1. banco (com privilégios padrão estilo Supabase, o cenário que importa para a RLS)
-createdb inboxe2e
-{ cat tests/e2e/auth-stub.sql
-  echo "alter default privileges in schema public grant all on tables to anon, authenticated, service_role;"
-  echo "alter default privileges in schema public grant all on functions to anon, authenticated, service_role;"; } | psql -v ON_ERROR_STOP=1 -d inboxe2e
-psql -v ON_ERROR_STOP=1 -d inboxe2e -f inbox-db/supabase/migrations/20261008000000_inbox_install.sql
-psql -d inboxe2e -c "insert into auth.users(id,email) values
-  ('00000000-0000-0000-0000-00000000000a','andreas@t'),('00000000-0000-0000-0000-00000000000b','juline@t'),('00000000-0000-0000-0000-00000000000c','intruso@t');
-  insert into profiles(id,full_name,role) values
-  ('00000000-0000-0000-0000-00000000000a','Andreas','director'),('00000000-0000-0000-0000-00000000000b','Juline','ceo');"
-# 2. PostgREST na 3001 (db-uri com o role authenticator/senha x; jwt-secret = e2e-secret-e2e-secret-e2e-secret-123456)
-# 3. node tests/e2e/gateway-proxy.mjs ; node tests/e2e/calendar-mock.mjs        # portas 3002 e 3003
-# 4. dois servidores de desenvolvimento:
-#    VITE_SUPABASE_URL=http://127.0.0.1:3003 VITE_SUPABASE_PUBLISHABLE_KEY=x \
-#    VITE_INBOX_SUPABASE_URL=http://127.0.0.1:3002 VITE_INBOX_SUPABASE_PUBLISHABLE_KEY=y \
-#      npx vite dev --host 127.0.0.1 --port 5199
-#    VITE_SUPABASE_URL=http://127.0.0.1:3003 VITE_SUPABASE_PUBLISHABLE_KEY=x \
-#      npx vite dev --host 127.0.0.1 --port 5198        # Inbox sem configuração
-# 5. node tests/e2e/inbox.e2e.mjs ./saida ; node tests/e2e/isolation.e2e.mjs ./saida
-#    (zere os dados entre execuções: truncate contacts, tags cascade;)
+POSTGREST_BIN=/caminho/postgrest tests/e2e/stack.sh up      # banco + simulados + 3 servidores (5197 sem WhatsApp/IA, 5198 sem Inbox, 5199 completo)
+npm test                                                    # unitários
+node tests/e2e/inbox.e2e.mjs ./saida
+node tests/e2e/isolation.e2e.mjs ./saida
+node tests/e2e/whatsapp.api.mjs
+node tests/e2e/phase34.e2e.mjs ./saida                      # ~5 min (espera a contingência de 15 s)
+node tests/e2e/ai.api.mjs
+node tests/e2e/ai.e2e.mjs ./saida
+tests/e2e/stack.sh down
 ```
-Os caminhos do Chromium/Playwright e o usuário `postgres` do `psql` estão fixos no topo dos scripts; ajuste ao seu ambiente.
+Cada script zera os dados que usa no começo. Os caminhos do Chromium/Playwright e o `psql` via `su postgres` estão fixos no
+topo dos scripts; ajuste ao seu ambiente.
