@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "NITRO_PRESET=vercel npm run build",
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  }
+}

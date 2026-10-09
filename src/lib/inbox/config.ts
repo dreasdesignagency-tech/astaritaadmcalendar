@@ -85,3 +85,13 @@ export function readInboxConfig(env: InboxConfigEnv): InboxConfig {
 
   return { ok: true, url: url.replace(/\/+$/, ""), key };
 }
+
+/**
+ * Valores PÚBLICOS do projeto Astarita Inbox. A URL e a chave publicável (sb_publishable_) são feitas para ir no navegador
+ * de qualquer usuário; quem protege os dados é a RLS. Usados só em build de produção, quando as variáveis não foram definidas.
+ * Nunca colocar aqui a service role.
+ */
+export const PUBLIC_INBOX_PROJECT = {
+  url: "https://yappbzpayqejqpkfebho.supabase.co",
+  key: "sb_publishable_hexMlR3tMeRXkupSt8qZrQ_c9RYQbJl",
+} as const;

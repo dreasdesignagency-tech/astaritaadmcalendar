@@ -1,3 +1,4 @@
+import { PUBLIC_INBOX_PROJECT } from "@/lib/inbox/config";
 import {
   whatsappMissing,
   normalizeApiVersion,
@@ -49,7 +50,10 @@ export function sendConfig():
 
 export function supabaseServerEnv():
   { ok: true; url: string; serviceKey: string } | { ok: false; missing: string[] } {
-  const url = env("INBOX_SUPABASE_URL") ?? env("VITE_INBOX_SUPABASE_URL");
+  const url =
+    env("INBOX_SUPABASE_URL") ??
+    env("VITE_INBOX_SUPABASE_URL") ??
+    (import.meta.env.PROD ? PUBLIC_INBOX_PROJECT.url : undefined);
   const serviceKey = env("INBOX_SUPABASE_SERVICE_ROLE_KEY");
   const missing = [
     !url && "INBOX_SUPABASE_URL",

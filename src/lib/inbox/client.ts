@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/inbox/database.types";
-import { readInboxConfig, type InboxConfig } from "@/lib/inbox/config";
+import { PUBLIC_INBOX_PROJECT, readInboxConfig, type InboxConfig } from "@/lib/inbox/config";
 
 /**
  * Cliente Supabase exclusivo do Inbox.
@@ -15,25 +15,15 @@ import { readInboxConfig, type InboxConfig } from "@/lib/inbox/config";
  */
 export const INBOX_STORAGE_KEY = "astarita-inbox-auth";
 
-/**
- * Valores PÚBLICOS do projeto Astarita Inbox, usados só em build de produção quando as variáveis VITE_INBOX_* não foram
- * definidas na hospedagem. A URL e a chave publicável (sb_publishable_) são feitas para ir no navegador de qualquer usuário;
- * quem protege os dados é a RLS. Nunca colocar aqui a service role. Em desenvolvimento e nos testes não há fallback.
- */
-const PUBLIC_FALLBACK = {
-  url: "https://yappbzpayqejqpkfebho.supabase.co",
-  key: "sb_publishable_hexMlR3tMeRXkupSt8qZrQ_c9RYQbJl",
-};
-
 export function getInboxConfig(): InboxConfig {
   const prod = import.meta.env.PROD === true;
   return readInboxConfig({
     inboxUrl:
       (import.meta.env["VITE_INBOX_SUPABASE_URL"] as string | undefined) ||
-      (prod ? PUBLIC_FALLBACK.url : undefined),
+      (prod ? PUBLIC_INBOX_PROJECT.url : undefined),
     inboxKey:
       (import.meta.env["VITE_INBOX_SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ||
-      (prod ? PUBLIC_FALLBACK.key : undefined),
+      (prod ? PUBLIC_INBOX_PROJECT.key : undefined),
     calendarUrl: import.meta.env["VITE_SUPABASE_URL"] as string | undefined,
   });
 }
