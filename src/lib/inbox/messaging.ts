@@ -1,4 +1,5 @@
 import { db, getInboxClient } from "@/lib/inbox/client";
+import { serverNotReadyStatus } from "@/lib/inbox/whatsapp-setup";
 
 /**
  * Envio de mensagens pelo WhatsApp (cliente). Fluxo:
@@ -8,7 +9,7 @@ import { db, getInboxClient } from "@/lib/inbox/client";
  * Tokens da Meta nunca passam pelo navegador.
  */
 export type ApiResult<T = Record<string, never>> =
-  ({ ok: true } & T) | { ok: false; error: string; code?: string };
+  ({ ok: true } & T) | { ok: false; error: string; code?: string; missing?: string[] };
 
 async function authHeader(): Promise<Record<string, string>> {
   const { data } = await getInboxClient().auth.getSession();
@@ -28,12 +29,13 @@ export async function inboxApi<T>(
       ...(method === "POST" ? { body: JSON.stringify(body ?? {}) } : {}),
     });
     const json = (await res.json().catch(() => null)) as
-      (Partial<{ error: string; code: string }> & T) | null;
+      (Partial<{ error: string; code: string; missing: string[] }> & T) | null;
     if (!res.ok || !json) {
       return {
         ok: false,
         error: json?.error ?? `O servidor respondeu com erro (${res.status}).`,
         ...(json?.code ? { code: json.code } : {}),
+        ...(Array.isArray(json?.missing) ? { missing: json.missing } : {}),
       };
     }
     return { ok: true, ...(json as T) };
@@ -143,11 +145,23 @@ export type ChannelStatus = {
     error: string | null;
   };
   ai: { configured: boolean; provider: string | null; model: string | null; missing: string[] };
+  /** Eventos recebidos da Meta (só datas e contagem). null = não foi possível ler. */
+  webhook: { lastValidAt: string | null; invalidLast24h: number } | null;
+  /** Tabela de variáveis (só nomes e sim/não), montada pelo servidor. */
+  envRows: { name: string; scope: "banco" | "whatsapp"; present: boolean; hint: string }[];
+  /** Variáveis do SERVIDOR do Inbox que faltam (acesso ao banco). Só presente quando o servidor não está pronto. */
+  serverMissing?: string[];
 };
 
 export async function fetchChannelStatus(): Promise<ChannelStatus> {
   const r = await inboxApi<{ status: ChannelStatus }>("/api/inbox/status", undefined, "GET");
-  if (!r.ok) throw new Error(r.error);
+  if (!r.ok) {
+    if (r.code === "server_not_configured")
+      return serverNotReadyStatus(
+        r.missing && r.missing.length ? r.missing : ["variáveis do servidor do Inbox"],
+      );
+    throw new Error(r.error);
+  }
   return r.status;
 }
 

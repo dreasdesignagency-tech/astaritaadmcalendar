@@ -9,9 +9,10 @@ export const Route = createFileRoute("/api/inbox/status")({
     handlers: {
       GET: async ({ request }) => {
         try {
-          const who = await requireMember(request, getAdmin());
+          const admin = getAdmin();
+          const who = await requireMember(request, admin);
           if (!who.ok) return who.res;
-          return json({ ok: true, status: await channelStatus() });
+          return json({ ok: true, status: await channelStatus(admin) });
         } catch (e) {
           const cfg = configErrorResponse(e);
           if (cfg) return cfg;

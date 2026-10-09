@@ -4,6 +4,7 @@ import type { AdminClient } from "@/lib/inbox/server/admin";
 import { aiEnvStatus, env, graphBase, sendConfig, whatsappEnv } from "@/lib/inbox/server/env";
 import {
   buildTemplateBody,
+  describeEnv,
   buildTextBody,
   eventKey,
   mapGraphError,
@@ -461,9 +462,32 @@ export async function sendMessage(admin: AdminClient, input: SendInput): Promise
 }
 
 // ---------------------------------------------------------------- estado dos canais
+/** Atividade do webhook: só datas e contagem, nunca o conteúdo dos eventos. */
+async function webhookActivity(admin: AdminClient): Promise<ChannelStatus["webhook"]> {
+  const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+  const [ok, bad] = await Promise.all([
+    admin
+      .from("webhook_events")
+      .select("created_at")
+      .eq("provider", "whatsapp")
+      .eq("signature_valid", true)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    admin
+      .from("webhook_events")
+      .select("id", { count: "exact", head: true })
+      .eq("provider", "whatsapp")
+      .eq("signature_valid", false)
+      .gte("created_at", since),
+  ]);
+  if (ok.error || bad.error) return null;
+  return { lastValidAt: ok.data?.[0]?.created_at ?? null, invalidLast24h: bad.count ?? 0 };
+}
+
 let waCache: { at: number; key: string; value: ChannelStatus["whatsapp"] } | null = null;
 
-export async function channelStatus(): Promise<ChannelStatus> {
+export async function channelStatus(admin?: AdminClient): Promise<ChannelStatus> {
+  const webhook = admin ? await webhookActivity(admin) : null;
   const e = whatsappEnv();
   const missing = whatsappMissing(e);
   const base: ChannelStatus["whatsapp"] = {
@@ -476,11 +500,12 @@ export async function channelStatus(): Promise<ChannelStatus> {
   };
   const ai = aiEnvStatus();
   const cfg = sendConfig();
-  if (!base.configured || !cfg.ok) return { whatsapp: base, ai };
+  const envRows = describeEnv(e, true);
+  if (!base.configured || !cfg.ok) return { whatsapp: base, ai, webhook, envRows };
 
   const key = `${cfg.phoneNumberId}|${cfg.version}|${cfg.token.length}`;
   if (waCache && waCache.key === key && Date.now() - waCache.at < 60_000)
-    return { whatsapp: waCache.value, ai };
+    return { whatsapp: waCache.value, ai, webhook, envRows };
 
   const res = await graph(
     `/${cfg.version}/${cfg.phoneNumberId}?fields=display_phone_number,verified_name`,
@@ -503,7 +528,7 @@ export async function channelStatus(): Promise<ChannelStatus> {
     value = { ...base, reachable: false, error: mapGraphError(res.status, res.body).message };
   }
   waCache = { at: Date.now(), key, value };
-  return { whatsapp: value, ai };
+  return { whatsapp: value, ai, webhook, envRows };
 }
 
 // ---------------------------------------------------------------- mídia

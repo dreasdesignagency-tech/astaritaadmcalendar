@@ -63,7 +63,7 @@ Elas **nunca** levam o prefixo `VITE_` e nunca vão para o GitHub:
 | `WHATSAPP_VERIFY_TOKEN`, `META_APP_SECRET` | verificar o webhook e validar a assinatura de cada evento |
 | `INBOX_AI_PROVIDER` (`anthropic` ou `openai`), `INBOX_AI_API_KEY`, `INBOX_AI_MODEL` | Assistente Astarita (opcional) |
 
-Na Meta, o webhook aponta para `https://SEU-ENDERECO/api/whatsapp/webhook`, com o mesmo verify token. Isso exige um endereço
+Passo a passo completo, com o que está e o que não está confirmado (inclusive coexistência): `docs/WHATSAPP-CONEXAO.md`. Na Meta, o webhook aponta para `https://SEU-ENDERECO/api/whatsapp/webhook`, com o mesmo verify token. Isso exige um endereço
 público em HTTPS: não funciona em `localhost`. Sem as variáveis, o Inbox funciona normalmente e as telas dizem o que falta.
 
 ## Rodar localmente
@@ -105,19 +105,20 @@ desenvolvimento (o ambiente bloqueia `developers.facebook.com`). Conferir com a 
 
 ## Testes
 ```bash
-npm test      # unitários (Node, sem dependências): 65 testes
+npm test      # unitários (Node, sem dependências): 72 testes
 ```
 Os testes de ponta a ponta usam `tests/e2e/stack.sh up` (Postgres + PostgREST com o SQL exato instalado e RLS, GoTrue, Storage,
 Meta e IA **simulados**, Realtime **ausente**). Ver `tests/e2e/README.md`.
 
 | O quê | Resultado |
 |---|---|
-| Unitários (telefone, status, configuração, usuários, isolamento por código, funil, lembretes, WhatsApp, IA) | 65/65 |
+| Unitários (telefone, status, configuração, usuários, isolamento por código, funil, lembretes, WhatsApp, passos de conexão, IA) | 72/72 |
 | Banco: SQL aprovado em banco limpo, reaplicar aborta, hardening e migration de notas com reversão | ok |
 | E2E contatos/conversas/filtros/responsáveis/RLS/celular | 37/37 |
 | E2E isolamento, login, definir senha, configuração ausente, rota raiz, 404 das rotas antigas | ver abaixo |
 | API WhatsApp (assinatura, idempotência, status, envio, concorrência, janela, mídia, vazamento de segredo) | 76/76 |
 | E2E funil, respostas rápidas, notas, lembretes, envio e janela (Meta simulada) | 41/41 |
+| Tela Conectar o WhatsApp (passos reais, nomes sem valores, webhook) | 18/18 |
 | API da IA (prompt, base de conhecimento, injeção, erros, limite, não envia nada) | 35/35 |
 | E2E do Assistente e da base de conhecimento (IA simulada) | 22/22 |
 

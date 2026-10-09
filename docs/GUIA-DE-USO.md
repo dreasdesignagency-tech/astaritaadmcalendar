@@ -59,6 +59,7 @@ adicionar um contato ao funil e remover do funil sem apagar o contato.
 
 ## Configurações
 - **Equipe com acesso:** quem pode entrar.
+- **Conectar o WhatsApp:** passos que ficam verdes sozinhos conforme a configuração é feita, com o endereço do webhook para copiar e a lista de variáveis do servidor (só os nomes). Guia da Meta em `docs/WHATSAPP-CONEXAO.md`.
 - **Conexões:** mostra o estado real do WhatsApp e da IA. Se algo faltar, diz o nome do que falta.
 - **Conhecimento da Astarita:** os 8 campos usados pelo assistente.
 

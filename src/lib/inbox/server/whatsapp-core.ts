@@ -445,6 +445,45 @@ export const WHATSAPP_REQUIRED = [
   "WHATSAPP_API_VERSION",
 ] as const;
 
+export type EnvRow = { name: string; scope: "banco" | "whatsapp"; present: boolean; hint: string };
+
+const ENV_HINTS: Record<string, string> = {
+  INBOX_SUPABASE_SERVICE_ROLE_KEY: "Acesso do servidor ao banco do Inbox",
+  WHATSAPP_ACCESS_TOKEN: "Token de acesso permanente da Meta",
+  WHATSAPP_PHONE_NUMBER_ID: "ID do número na Meta (não é o telefone)",
+  WHATSAPP_API_VERSION: "Versão da API, por exemplo v21.0",
+  WHATSAPP_VERIFY_TOKEN: "Texto que você inventa e repete no webhook da Meta",
+  META_APP_SECRET: "Chave secreta do app da Meta (valida a assinatura)",
+};
+
+/** Tabela "o que está definido" para a tela: só nomes e sim/não, nunca valores. */
+export function describeEnv(env: WhatsAppEnv, serviceKeyPresent: boolean): EnvRow[] {
+  const missing = whatsappMissing(env);
+  const rows: EnvRow[] = [
+    {
+      name: "INBOX_SUPABASE_SERVICE_ROLE_KEY",
+      scope: "banco",
+      present: serviceKeyPresent,
+      hint: ENV_HINTS["INBOX_SUPABASE_SERVICE_ROLE_KEY"] ?? "",
+    },
+  ];
+  for (const name of [
+    "WHATSAPP_ACCESS_TOKEN",
+    "WHATSAPP_PHONE_NUMBER_ID",
+    "WHATSAPP_API_VERSION",
+    "WHATSAPP_VERIFY_TOKEN",
+    "META_APP_SECRET",
+  ]) {
+    rows.push({
+      name,
+      scope: "whatsapp",
+      present: !missing.some((m) => m === name || m.startsWith(`${name} `)),
+      hint: ENV_HINTS[name] ?? "",
+    });
+  }
+  return rows;
+}
+
 /** Quais variáveis faltam (só os nomes; nunca valores). A versão da API precisa ter formato válido. */
 export function whatsappMissing(
   env: WhatsAppEnv,

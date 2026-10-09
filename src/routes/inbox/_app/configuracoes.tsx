@@ -5,6 +5,7 @@ import { Check, Circle } from "lucide-react";
 import { PageHeader } from "@/components/inbox/PageHeader";
 import { UserAvatar } from "@/components/inbox/UserAvatar";
 import { KnowledgeEditor } from "@/components/inbox/KnowledgeEditor";
+import { WhatsAppSetup } from "@/components/inbox/WhatsAppSetup";
 import { fetchTeam } from "@/lib/inbox/api";
 import { useChannelStatus } from "@/lib/inbox/channel";
 import { ROLE_LABEL } from "@/lib/inbox/types";
@@ -92,6 +93,15 @@ function SettingsPage() {
             />
             <Status ok={!!ai?.configured} label="Assistente de IA" detail={aiDetail} />
           </ul>
+        </section>
+
+        <section className="inbox-surface rounded-[2rem] p-5 sm:p-6 lg:col-span-2">
+          <h2 className="mb-1 font-display text-base font-semibold">Conectar o WhatsApp</h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Integração oficial (WhatsApp Cloud API). Cada passo muda sozinho quando a configuração é
+            feita de verdade.
+          </p>
+          <WhatsAppSetup />
         </section>
 
         <section className="inbox-surface rounded-[2rem] p-5 sm:p-6 lg:col-span-2">
