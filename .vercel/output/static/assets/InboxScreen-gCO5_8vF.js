@@ -1,1 +1,0 @@
-import{a as e}from"./dist-Cq3t7Yb0.js";var t=e();function n({children:e}){return(0,t.jsx)(`div`,{className:`inbox-theme fixed inset-0 flex items-center justify-center overflow-y-auto bg-background p-4`,children:(0,t.jsx)(`div`,{className:`inbox-surface w-full max-w-md rounded-[2rem] p-6 sm:p-8`,children:e})})}export{n as t};

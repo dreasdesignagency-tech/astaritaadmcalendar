@@ -1,1 +1,0 @@
-var e={waiting:`Aguardando resposta`,in_progress:`Em atendimento`,resolved:`Resolvida`},t={lead:`Lead`,cliente:`Cliente`,parceiro:`Parceiro`,outro:`Outro`},n={director:`Diretor Criativo`,ceo:`CEO`,member:`Equipe`};export{n,e as r,t};
