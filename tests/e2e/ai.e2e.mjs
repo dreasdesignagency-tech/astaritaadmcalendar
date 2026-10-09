@@ -92,6 +92,7 @@ await page.screenshot({ path: `${S}/ai-painel.png` });
 // ================================================================ Configurações
 await page.goto(`${BASE}/inbox/configuracoes`);
 await page.getByText('Conhecimento da Astarita').waitFor({ timeout: 20000 });
+await page.getByText(/Ligado \(anthropic/).waitFor({ timeout: 15000 }).catch(() => {});
 check('configurações: IA aparece como ligada com provedor e modelo', (await page.getByText(/Ligado \(anthropic, modelo modelo-teste\)/).count()) === 1);
 check('configurações: WhatsApp aparece conectado ao número', (await page.getByText(/Conectado ao número/).count()) === 1);
 const kb = page.getByLabel('Serviços', { exact: true });

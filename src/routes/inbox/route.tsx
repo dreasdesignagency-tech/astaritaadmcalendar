@@ -1,4 +1,4 @@
-import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { SettingsIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/inbox/EmptyState";
@@ -38,19 +38,12 @@ function InboxRoot() {
                 </span>
               ))}
             </span>
-            <span className="mt-2 block">
-              Defina as duas e reinicie o app. O calendário não é afetado.
-            </span>
+            <span className="mt-2 block">Defina as duas e reinicie o app.</span>
           </>
         ) : (
           config.message
         )}
       </EmptyState>
-      <div className="flex justify-center">
-        <Link to="/" className="text-sm font-medium text-primary hover:underline">
-          Ir para o calendário
-        </Link>
-      </div>
     </InboxScreen>
   );
 }

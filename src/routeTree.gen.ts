@@ -9,12 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthRouteImport } from './routes/auth'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as InboxRouteRouteImport } from './routes/inbox/route'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as InboxAppRouteRouteImport } from './routes/inbox/_app/route'
 import { Route as InboxDefinirSenhaRouteImport } from './routes/inbox/definir-senha'
 import { Route as InboxEntrarRouteImport } from './routes/inbox/entrar'
@@ -29,34 +25,15 @@ import { Route as InboxAppContatosRouteImport } from './routes/inbox/_app/contat
 import { Route as InboxAppFunilRouteImport } from './routes/inbox/_app/funil'
 import { Route as InboxAppRespostasRouteImport } from './routes/inbox/_app/respostas'
 
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InboxRouteRoute = InboxRouteRouteImport.update({
   id: '/inbox',
   path: '/inbox',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
-  id: '/clientes',
-  path: '/clientes',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const InboxAppRouteRoute = InboxAppRouteRouteImport.update({
   id: '/_app',
@@ -124,11 +101,8 @@ const InboxAppRespostasRoute = InboxAppRespostasRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
+  '/': typeof IndexRoute
   '/inbox': typeof InboxRouteRouteWithChildren
-  '/auth': typeof AuthRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/clientes': typeof AuthenticatedClientesRoute
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
   '/api/inbox/ai': typeof ApiInboxAiRoute
@@ -143,13 +117,10 @@ export interface FileRoutesByFullPath {
   '/inbox/': typeof InboxAppIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/inbox': typeof InboxAppIndexRoute
-  '/auth': typeof AuthRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/clientes': typeof AuthenticatedClientesRoute
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
-  '/': typeof AuthenticatedIndexRoute
   '/api/inbox/ai': typeof ApiInboxAiRoute
   '/api/inbox/media': typeof ApiInboxMediaRoute
   '/api/inbox/send': typeof ApiInboxSendRoute
@@ -162,15 +133,11 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/': typeof IndexRoute
   '/inbox': typeof InboxRouteRouteWithChildren
-  '/auth': typeof AuthRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/inbox/_app': typeof InboxAppRouteRouteWithChildren
-  '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/inbox/definir-senha': typeof InboxDefinirSenhaRoute
   '/inbox/entrar': typeof InboxEntrarRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/inbox/ai': typeof ApiInboxAiRoute
   '/api/inbox/media': typeof ApiInboxMediaRoute
   '/api/inbox/send': typeof ApiInboxSendRoute
@@ -187,9 +154,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/inbox'
-    | '/auth'
-    | '/reset-password'
-    | '/clientes'
     | '/inbox/definir-senha'
     | '/inbox/entrar'
     | '/api/inbox/ai'
@@ -204,13 +168,10 @@ export interface FileRouteTypes {
     | '/inbox/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/inbox'
-    | '/auth'
-    | '/reset-password'
-    | '/clientes'
     | '/inbox/definir-senha'
     | '/inbox/entrar'
-    | '/'
     | '/api/inbox/ai'
     | '/api/inbox/media'
     | '/api/inbox/send'
@@ -222,15 +183,11 @@ export interface FileRouteTypes {
     | '/inbox/respostas'
   id:
     | '__root__'
-    | '/_authenticated'
+    | '/'
     | '/inbox'
-    | '/auth'
-    | '/reset-password'
     | '/inbox/_app'
-    | '/_authenticated/clientes'
     | '/inbox/definir-senha'
     | '/inbox/entrar'
-    | '/_authenticated/'
     | '/api/inbox/ai'
     | '/api/inbox/media'
     | '/api/inbox/send'
@@ -244,10 +201,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  IndexRoute: typeof IndexRoute
   InboxRouteRoute: typeof InboxRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
   ApiInboxAiRoute: typeof ApiInboxAiRoute
   ApiInboxMediaRoute: typeof ApiInboxMediaRoute
   ApiInboxSendRoute: typeof ApiInboxSendRoute
@@ -257,18 +212,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
+    '/': {
+      id: '/'
+      path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inbox': {
@@ -277,27 +225,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/inbox'
       preLoaderRoute: typeof InboxRouteRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/': {
-      id: '/_authenticated/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/clientes': {
-      id: '/_authenticated/clientes'
-      path: '/clientes'
-      fullPath: '/clientes'
-      preLoaderRoute: typeof AuthenticatedClientesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/inbox/_app': {
       id: '/inbox/_app'
@@ -393,19 +320,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedClientesRoute: AuthenticatedClientesRoute,
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
 interface InboxAppRouteRouteChildren {
   InboxAppConfiguracoesRoute: typeof InboxAppConfiguracoesRoute
   InboxAppContatosRoute: typeof InboxAppContatosRoute
@@ -443,10 +357,8 @@ const InboxRouteRouteWithChildren = InboxRouteRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  IndexRoute: IndexRoute,
   InboxRouteRoute: InboxRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
   ApiInboxAiRoute: ApiInboxAiRoute,
   ApiInboxMediaRoute: ApiInboxMediaRoute,
   ApiInboxSendRoute: ApiInboxSendRoute,

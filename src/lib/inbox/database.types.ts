@@ -1,7 +1,7 @@
 // Tabelas e colunas conferidas contra os tipos gerados pelo banco real em 09/10/2026 (após as migrations 20261009001027 e
 // 20261009001210): mesmas 14 tabelas e colunas. Só as assinaturas das funções inbox_* são mantidas à mão (nomes de argumentos).
 // Gerado com o Supabase MCP (generate_typescript_types) a partir do projeto Astarita Inbox (yappbzpayqejqpkfebho).
-// Regerar com: npm run inbox:types. Nunca misturar com src/integrations/supabase/types.ts, que é do calendário.
+// Regerar com: npm run inbox:types.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {

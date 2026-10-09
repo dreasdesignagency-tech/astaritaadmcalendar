@@ -1,6 +1,6 @@
 # Astarita Inbox
 
-Central privada de atendimento via WhatsApp, no mesmo repositório do calendário (TanStack Start + Supabase),
+Central privada de atendimento via WhatsApp, (TanStack Start + Supabase). **Nesta branch o calendário foi removido**: o projeto é só o Inbox e `/` redireciona para `/inbox`. O calendário continua na `main` e na publicação do Lovable. As menções ao calendário abaixo descrevem o desenho original de isolamento,
 mas com **banco, login e sessão totalmente separados**.
 
 ## Arquitetura em uma olhada
@@ -115,7 +115,7 @@ Meta e IA **simulados**, Realtime **ausente**). Ver `tests/e2e/README.md`.
 | Unitários (telefone, status, configuração, usuários, isolamento por código, funil, lembretes, WhatsApp, IA) | 65/65 |
 | Banco: SQL aprovado em banco limpo, reaplicar aborta, hardening e migration de notas com reversão | ok |
 | E2E contatos/conversas/filtros/responsáveis/RLS/celular | 37/37 |
-| E2E isolamento, login, definir senha, configuração ausente, regressão do calendário | 29/29 |
+| E2E isolamento, login, definir senha, configuração ausente, rota raiz, 404 das rotas antigas | ver abaixo |
 | API WhatsApp (assinatura, idempotência, status, envio, concorrência, janela, mídia, vazamento de segredo) | 76/76 |
 | E2E funil, respostas rápidas, notas, lembretes, envio e janela (Meta simulada) | 41/41 |
 | API da IA (prompt, base de conhecimento, injeção, erros, limite, não envia nada) | 35/35 |

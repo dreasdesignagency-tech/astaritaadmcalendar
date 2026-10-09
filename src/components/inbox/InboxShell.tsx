@@ -1,15 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Asterisk,
-  CalendarDays,
-  Columns3,
-  LogOut,
-  MessageSquareText,
-  Settings,
-  Users,
-  Zap,
-} from "lucide-react";
+import { Asterisk, Columns3, LogOut, MessageSquareText, Settings, Users, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -87,11 +78,6 @@ export function InboxShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="mt-auto flex flex-col items-center gap-2">
-            <Hint label="Calendário de conteúdo">
-              <Link to="/" className={itemClass} aria-label="Calendário de conteúdo">
-                <CalendarDays className="h-5 w-5" />
-              </Link>
-            </Hint>
             <Hint label="Sair">
               <button onClick={leave} className={itemClass} aria-label="Sair">
                 <LogOut className="h-5 w-5" />

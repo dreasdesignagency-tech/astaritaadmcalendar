@@ -1,6 +1,6 @@
 # Hospedar o Astarita Inbox na Vercel (projeto separado)
 
-O calendário continua na publicação atual. O Inbox ganha um projeto Vercel próprio, ligado à branch `claude/happy-johnson-e8kozp`.
+Esta branch NÃO contém mais o calendário (removido; ele segue na `main` e na publicação do Lovable). O Inbox ganha um projeto Vercel próprio, ligado à branch `claude/happy-johnson-e8kozp`.
 
 ## Como o build funciona
 - O app é TanStack Start com Nitro. O `vercel.json` manda construir com `NITRO_PRESET=vercel`, que gera o formato da Vercel.

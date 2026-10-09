@@ -4,7 +4,7 @@ Rodam o app no navegador contra um Postgres local com **o SQL exato instalado** 
 (o mesmo servidor de API do Supabase), JWT assinado e RLS ligada. Não usam nenhum projeto Supabase real e não falam com a Meta
 nem com provedor de IA de verdade.
 
-Simulados: GoTrue/Storage (`gateway-proxy.mjs`), calendário (`calendar-mock.mjs`), Graph API da Meta (`graph-mock.mjs`, porta 3004)
+Simulados: GoTrue/Storage (`gateway-proxy.mjs`), Graph API da Meta (`graph-mock.mjs`, porta 3004)
 e provedor de IA (`ai-mock.mjs`, porta 3005). **Ausente:** Realtime (o app cai no modo de contingência, que é o que se valida).
 Os testes validam o NOSSO lado do contrato, não a Meta nem um modelo de IA reais.
 

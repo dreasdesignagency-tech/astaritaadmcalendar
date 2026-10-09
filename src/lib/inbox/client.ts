@@ -11,7 +11,6 @@ import { PUBLIC_INBOX_PROJECT, readInboxConfig, type InboxConfig } from "@/lib/i
  *   então a falta destas variáveis não afeta o calendário.
  * - Sessão guardada em localStorage com chave própria. Não usa o armazenamento intermediado do
  *   calendário (que repassa a sessão ao editor do Lovable) e nunca lê a sessão do calendário.
- * - Não importa nada de @/integrations/supabase: os dois mundos ficam separados.
  */
 export const INBOX_STORAGE_KEY = "astarita-inbox-auth";
 

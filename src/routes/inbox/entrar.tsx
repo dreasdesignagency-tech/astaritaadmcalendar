@@ -124,7 +124,7 @@ function InboxLogin() {
       </form>
 
       <p className="mt-6 text-xs text-muted-foreground">
-        Acesso restrito. Este login é só do Inbox e não é o mesmo do calendário.
+        Acesso restrito à equipe. Este login é só do Inbox.
       </p>
     </InboxScreen>
   );

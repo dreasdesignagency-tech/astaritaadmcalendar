@@ -50,16 +50,15 @@ server-host = "127.0.0.1"
 server-port = 3001
 CONF
     nohup "$POSTGREST_BIN" "$RUN/pgrst.conf" > "$RUN/postgrest.log" 2>&1 & echo $! >> "$RUN/pids"
-    for f in gateway-proxy calendar-mock graph-mock ai-mock; do nohup node tests/e2e/$f.mjs > "$RUN/$f.log" 2>&1 & echo $! >> "$RUN/pids"; done
+    for f in gateway-proxy graph-mock ai-mock; do nohup node tests/e2e/$f.mjs > "$RUN/$f.log" 2>&1 & echo $! >> "$RUN/pids"; done
     SERVICE=$(jwt service_role)
-    CAL="VITE_SUPABASE_URL=http://127.0.0.1:3003 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_cal"
     INBOX="VITE_INBOX_SUPABASE_URL=http://127.0.0.1:3002 VITE_INBOX_SUPABASE_PUBLISHABLE_KEY=sb_publishable_inbox INBOX_SUPABASE_URL=http://127.0.0.1:3002 INBOX_SUPABASE_SERVICE_ROLE_KEY=$SERVICE"
     WA="WHATSAPP_ACCESS_TOKEN=token-de-teste-da-meta WHATSAPP_PHONE_NUMBER_ID=PHONE_ID WHATSAPP_VERIFY_TOKEN=verify-teste META_APP_SECRET=segredo-do-app-teste WHATSAPP_API_VERSION=v21.0 WHATSAPP_GRAPH_BASE_URL=http://127.0.0.1:3004"
     AI="INBOX_AI_PROVIDER=anthropic INBOX_AI_API_KEY=ai-key-test INBOX_AI_MODEL=modelo-teste INBOX_AI_BASE_URL=http://127.0.0.1:3005"
     # 5199: tudo configurado. 5198: Inbox sem variáveis (tela "não configurado"). 5197: servidor com Supabase mas SEM WhatsApp/IA.
-    (env $CAL $INBOX $WA $AI ${EXTRA_5199:-} nohup npx vite dev --host 127.0.0.1 --port 5199 > "$RUN/dev-5199.log" 2>&1 & echo $! >> "$RUN/pids")
-    (env $CAL nohup npx vite dev --host 127.0.0.1 --port 5198 > "$RUN/dev-5198.log" 2>&1 & echo $! >> "$RUN/pids")
-    (env $CAL $INBOX nohup npx vite dev --host 127.0.0.1 --port 5197 > "$RUN/dev-5197.log" 2>&1 & echo $! >> "$RUN/pids")
+    (env $INBOX $WA $AI ${EXTRA_5199:-} nohup npx vite dev --host 127.0.0.1 --port 5199 > "$RUN/dev-5199.log" 2>&1 & echo $! >> "$RUN/pids")
+    (nohup npx vite dev --host 127.0.0.1 --port 5198 > "$RUN/dev-5198.log" 2>&1 & echo $! >> "$RUN/pids")
+    (env $INBOX nohup npx vite dev --host 127.0.0.1 --port 5197 > "$RUN/dev-5197.log" 2>&1 & echo $! >> "$RUN/pids")
     sleep 14; echo "pilha no ar ($RUN)" ;;
   down)
     [ -f "$RUN/pids" ] && xargs -r kill < "$RUN/pids" 2>/dev/null || true; rm -f "$RUN/pids"

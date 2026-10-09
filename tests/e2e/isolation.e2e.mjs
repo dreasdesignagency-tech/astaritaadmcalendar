@@ -1,6 +1,5 @@
-// Login do Inbox, isolamento de sessões, configuração ausente e regressão do calendário.
-// Requer: gateway-proxy (3002) + PostgREST + calendar-mock (3003) + dois servidores de desenvolvimento:
-//   5199 com VITE_INBOX_* e VITE_SUPABASE_* ; 5198 só com VITE_SUPABASE_* (Inbox sem configuração).
+// Login do Inbox, sessão, definir senha, rota raiz e configuração ausente (o calendário foi removido deste projeto).
+// Requer: gateway-proxy (3002) + PostgREST + dois servidores: 5199 com VITE_INBOX_* ; 5198 sem variáveis (Inbox sem configuração).
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import { createHmac } from 'node:crypto';
 const S = process.argv[2] ?? '.';
@@ -34,24 +33,14 @@ const storage = (page) => page.evaluate(([ck, ik]) => ({ cal: localStorage.getIt
   await page.goto(`${WITH}/inbox`); await page.waitForURL(/\/inbox\/entrar/, { timeout: 15000 });
   check('sem sessão: /inbox redireciona para /inbox/entrar', true);
   await page.getByText('Este login é só do Inbox').waitFor({ timeout: 10000 }).catch(() => {});
-  check('tela de login do Inbox é exibida e avisa que é independente do calendário', await page.getByText('Este login é só do Inbox').isVisible());
+  check('tela de login do Inbox é exibida', await page.getByText('Este login é só do Inbox').isVisible());
   await page.screenshot({ path: `${S}/iso-login.png` });
-  await ctx.close();
-}
-
-// --- 2. Só sessão do calendário: o Inbox NÃO a aceita nem a envia
-{
-  const { ctx, page, hosts } = await open({ calendar: true });
-  await page.goto(`${WITH}/inbox`); await page.waitForURL(/\/inbox\/entrar/, { timeout: 15000 });
-  check('sessão do calendário não vale no Inbox', true);
-  await page.waitForTimeout(800);
-  check('nenhuma consulta de dados foi feita nos projetos (nem com o token do calendário)', ![...hosts].some((h) => h.endsWith(':rest')), [...hosts].join());
   await ctx.close();
 }
 
 // --- 3. Login com senha errada e certa (GoTrue simulado)
 {
-  const { ctx, page, hosts } = await open({ calendar: true });
+  const { ctx, page } = await open();
   await page.goto(`${WITH}/inbox/entrar`);
   await page.getByLabel('E-mail').fill('andreas@t'); await page.getByLabel('Senha').fill('errada');
   await page.getByRole('button', { name: 'Entrar' }).click();
@@ -66,19 +55,17 @@ const storage = (page) => page.evaluate(([ck, ik]) => ({ cal: localStorage.getIt
   const st = await storage(page);
   check('login correto entra no Inbox', true);
   check('sessão do Inbox gravada na chave própria', !!st.inbox && JSON.parse(st.inbox).user.email === 'andreas@t');
-  check('sessão do calendário continua intacta depois do login do Inbox', !!st.cal && JSON.parse(st.cal).user.email === 'cal@calendario.test');
-  check('durante o uso do Inbox nada foi enviado ao projeto do calendário (3003)', ![...hosts].some((h) => h.startsWith('3003')), [...hosts].join());
   await page.screenshot({ path: `${S}/iso-inbox-logged.png` });
 
   // recarregar mantém a sessão
   await page.reload(); await page.getByText('Caixa de entrada').first().waitFor({ timeout: 15000 });
   check('recarregar a página mantém o login do Inbox', true);
 
-  // --- 4. Sair do Inbox não desloga o calendário
+  // --- 4. Sair do Inbox
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/inbox\/entrar/, { timeout: 10000 });
   const after = await storage(page);
-  check('sair do Inbox remove só a sessão do Inbox', after.inbox === null && !!after.cal);
+  check('sair do Inbox remove a sessão', after.inbox === null);
   await ctx.close();
 }
 
@@ -107,56 +94,32 @@ const storage = (page) => page.evaluate(([ck, ik]) => ({ cal: localStorage.getIt
   await ctx.close();
 }
 
-// --- 6. Regressão do calendário (com o Inbox configurado ao lado)
+// --- 6. Rota raiz: o projeto é só o Inbox
 {
-  const { ctx, page, hosts, errors } = await open({ calendar: true });
-  await page.goto(`${WITH}/clientes`);
-  await page.getByText('Cliente do Calendário').first().waitFor({ timeout: 20000 });
-  check('calendário: /clientes carrega dados do projeto do calendário', true);
-  await page.goto(`${WITH}/`);
-  await page.waitForSelector('text=Calendário', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(800);
-  check('calendário: tela inicial abre', (await page.locator('main').count()) > 0);
-  check('calendário nunca falou com o projeto do Inbox (3002)', ![...hosts].some((h) => h.startsWith('3002')), [...hosts].join());
-  check('calendário sem erros de página', errors.length === 0, errors.join(' | '));
-  await page.screenshot({ path: `${S}/iso-calendar.png` });
-  await ctx.close();
-}
-{
-  const { ctx, page } = await open();
-  await page.goto(`${WITH}/`); await page.waitForURL(/\/auth/, { timeout: 15000 });
-  await page.getByRole('heading', { name: 'Entrar' }).waitFor({ timeout: 15000 }).catch(() => {});
-  check('calendário: sem sessão continua indo para /auth (login do calendário)', await page.getByRole('heading', { name: 'Entrar' }).isVisible());
+  const { ctx, page, errors } = await open();
+  await page.goto(`${WITH}/`); await page.waitForURL(/\/inbox\/entrar/, { timeout: 15000 });
+  check('/ leva ao Inbox (sem sessão, cai no login do Inbox)', true);
+  await page.goto(`${WITH}/clientes`); await page.waitForTimeout(800);
+  check('rotas do calendário não existem mais (404)', (await page.getByText(/404|não encontrad|not found/i).count()) > 0);
+  check('sem erros de página', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
 
-// --- 7. Inbox sem configuração: não quebra o calendário
+// --- 7. Inbox sem configuração
 {
-  const { ctx, page, hosts, errors } = await open({ calendar: true });
+  const { ctx, page, hosts, errors } = await open();
   await page.goto(`${WITHOUT}/inbox`);
   await page.getByText('Inbox não configurado').waitFor({ timeout: 15000 });
   check('sem variáveis: /inbox mostra "Inbox não configurado"', true);
   check('lista os nomes das duas variáveis que faltam', (await page.getByText('VITE_INBOX_SUPABASE_URL').count()) > 0 && (await page.getByText('VITE_INBOX_SUPABASE_PUBLISHABLE_KEY').count()) > 0);
-  const body = await page.locator('body').innerText();
-  check('a tela não revela valores de configuração do calendário', !/sb_publishable|127\.0\.0\.1:3003/.test(body));
   await page.screenshot({ path: `${S}/iso-noconfig.png` });
   await page.goto(`${WITHOUT}/inbox/entrar`);
   await page.getByText('Inbox não configurado').waitFor({ timeout: 15000 }).catch(() => {});
   check('sem variáveis: o login do Inbox também fica bloqueado', await page.getByText('Inbox não configurado').isVisible());
-  await page.goto(`${WITHOUT}/clientes`);
-  await page.getByText('Cliente do Calendário').first().waitFor({ timeout: 20000 });
-  check('sem variáveis do Inbox: calendário continua funcionando', true);
-  check('sem variáveis do Inbox: nenhuma requisição ao projeto do Inbox', ![...hosts].some((h) => h.startsWith('3002')));
-  check('sem variáveis do Inbox: sem erros de página', errors.length === 0, errors.join(' | '));
+  check('sem variáveis: nenhuma requisição ao projeto do Inbox', ![...hosts].some((h) => h.startsWith('3002')));
+  check('sem variáveis: sem erros de página', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
-{
-  const { ctx, page } = await open();
-  await page.goto(`${WITHOUT}/auth`);
-  check('sem variáveis do Inbox: login do calendário abre normalmente', await page.getByRole('heading', { name: 'Entrar' }).isVisible());
-  await ctx.close();
-}
-
 await browser.close();
 const fails = results.filter((r) => !r).length;
 console.log(`\n${results.length - fails}/${results.length} passaram`);

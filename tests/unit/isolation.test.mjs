@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-/** Garante, no código-fonte, que Inbox e calendário não se enxergam. */
+/** Garante, no código-fonte, que o Inbox não depende do calendário (removido deste projeto) e não mistura segredos com o navegador. */
 const walk = (dir) =>
   readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
@@ -30,11 +30,9 @@ test("nenhum arquivo do Inbox lê as variáveis VITE_SUPABASE_* fora do cliente 
   }
 });
 
-test("o calendário não importa nada do Inbox", () => {
-  const calendar = [...walk("src/routes/_authenticated"), "src/routes/auth.tsx", "src/routes/reset-password.tsx", "src/components/AppShell.tsx", "src/lib/auth.ts", "src/lib/planner.ts"];
-  for (const f of calendar) {
-    assert.ok(!importsOf(f).some((i) => /inbox/.test(i)), `${f} importa o Inbox`);
-  }
+test("o código do calendário foi removido deste projeto", () => {
+  for (const f of ["src/routes/_authenticated", "src/routes/auth.tsx", "src/routes/reset-password.tsx", "src/components/AppShell.tsx", "src/lib/auth.ts", "src/lib/planner.ts", "src/integrations"])
+    assert.ok(!existsSync(f), `${f} ainda existe`);
 });
 
 test("o cliente do Inbox usa armazenamento e chave de sessão próprios", () => {
