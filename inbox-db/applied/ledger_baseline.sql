@@ -1,4 +1,4 @@
--- PROPOSTA, NÃO APLICADA. Reconciliação do histórico de migrations do projeto Astarita Inbox.
+-- APLICADA em 09/10/2026 (insert dos metadados da baseline no ledger). Histórico, não reaplicar.
 --
 -- Pré-condição: o ledger já existir. Ele é criado pelo apply_migration do hardening (passo A). Confira antes:
 --   select to_regclass('supabase_migrations.schema_migrations');   -- deve devolver o nome, não null

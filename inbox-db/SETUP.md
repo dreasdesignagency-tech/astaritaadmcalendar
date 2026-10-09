@@ -12,7 +12,7 @@ Nenhum segredo vai para o repositório nem para o chat: valores só em campos de
 - Tipos reais gerados e adotados no cliente (`src/lib/inbox/database.types.ts`).
 - Advisors de segurança: `rls_auto_enable()` (função do próprio projeto) chamável por API; `is_inbox_member()` chamável por
   `authenticated` (intencional, as políticas precisam). Advisors de desempenho: 2 políticas com `auth.uid()` por linha, 8 FKs sem
-  índice. Correções propostas em `inbox-db/proposed/inbox_hardening.sql` (**não aplicadas, aguardam aprovação**).
+  índice. Correções aplicadas em 09/10/2026 (`20261009001027_inbox_hardening.sql`), com autorização.
 - **Ainda não verificado no projeto real:** configurações de Auth (cadastro público, URLs), login, Realtime ao vivo.
 
 ## 1. Ações suas (o que não dá para automatizar)
@@ -50,11 +50,11 @@ auditoria, comportamento das políticas, **reversão** (estado idêntico ao de a
 
 | Passo | Ferramenta | Comando | Reversão |
 |---|---|---|---|
-| A | `apply_migration` (name `inbox_hardening`) | conteúdo de `proposed/inbox_hardening.sql` (1 revoke, 2 `alter policy`, 8 `create index if not exists`), numa transação única: se algo falhar, nada é aplicado e o ledger não é criado | `proposed/inbox_hardening.revert.sql` |
+| A | `apply_migration` (name `inbox_hardening`) | conteúdo de `supabase/migrations/20261009001027_inbox_hardening.sql` (1 revoke, 2 `alter policy`, 8 `create index if not exists`), numa transação única: se algo falhar, nada é aplicado e o ledger não é criado | `rollback/inbox_hardening.revert.sql` |
 | B | `execute_sql` (leitura) | `select to_regclass('supabase_migrations.schema_migrations');` deve devolver o nome | nada a reverter |
-| C | `execute_sql` | `insert` de metadados da baseline (`proposed/ledger_baseline.sql`), `on conflict do nothing` | `delete from supabase_migrations.schema_migrations where version in ('20261008000000', '<versão do passo A>');` |
+| C | `execute_sql` | `insert` de metadados da baseline (`applied/ledger_baseline.sql`), `on conflict do nothing` | `delete from supabase_migrations.schema_migrations where version in ('20261008000000', '<versão do passo A>');` |
 | D | leitura | `list_migrations` (2 linhas), `audit-readonly.sql` (25/25), advisors (somem `rls_auto_enable`, `auth_rls_initplan` e `unindexed_foreign_keys`; os `unused_index` novos são esperados com banco vazio) | nada a reverter |
-| E | repositório | renomear `proposed/inbox_hardening.sql` para `supabase/migrations/<versão do passo A>_inbox_hardening.sql` | git |
+| E | repositório | renomear `supabase/migrations/20261009001027_inbox_hardening.sql` para `supabase/migrations/<versão do passo A>_inbox_hardening.sql` | git |
 
 Sem a política de ledger do passo C o CLI ainda acharia que nada foi aplicado. Alternativa pelo CLI: `migration repair` (ver `README.md`).
 
@@ -86,3 +86,10 @@ node scripts/inbox-real-check.mjs --cleanup-only   # se uma execução for inter
 A Etapa A recusa "negado" por qualquer motivo que não seja permissão (42501), para não dar falso verde com chave errada.
 Antes do hardening, a verificação de `rls_auto_enable()` reprova de propósito (é o alerta de segurança). Testado só no ambiente
 local (28/28, sem Realtime). **As verificações de Realtime do script nunca rodaram contra um servidor Realtime de verdade.**
+
+## Estado real (09/10/2026)
+Aplicadas no projeto `yappbzpayqejqpkfebho`, com autorização: `inbox_hardening` (20261009001027), registro da baseline no ledger e
+`inbox_whatsapp_notes` (20261009001210). Auditoria: 28 verificações, todas OK (14 tabelas, RLS ligada em todas, 45 policies, Realtime
+em 9 tabelas, bucket `inbox-media` privado, funções do WhatsApp só para service_role). Aviso restante do Advisor, **intencional**:
+`is_inbox_member()` é executável por usuários logados (as policies dependem dela; devolve só se o próprio usuário é membro).
+Usuários em Authentication: 0. Perfis: 0.

@@ -1,4 +1,4 @@
--- PROPOSTA, NÃO APLICADA. Só rodar com aprovação explícita.
+-- APLICADA em 09/10/2026 no projeto Astarita Inbox (yappbzpayqejqpkfebho) como migration 20261009001210, com autorização do usuário.
 -- Projeto: Astarita Inbox (yappbzpayqejqpkfebho). Fases 3 e 4: observações internas, ingestão do WhatsApp, mídia.
 --
 -- Só ADICIONA: uma tabela, uma coluna, funções e um bucket privado. Não apaga nem altera dados existentes.

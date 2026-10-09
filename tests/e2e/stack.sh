@@ -27,7 +27,7 @@ end $$;
 create event trigger ensure_rls on ddl_command_end when tag in ('CREATE TABLE','CREATE TABLE AS','SELECT INTO') execute function public.rls_auto_enable();
 SQL
     cat inbox-db/supabase/migrations/20261008000000_inbox_install.sql
-    cat inbox-db/proposed/inbox_hardening.sql inbox-db/proposed/inbox_whatsapp_notes.sql
+    cat inbox-db/supabase/migrations/20261009001027_inbox_hardening.sql inbox-db/supabase/migrations/20261009001210_inbox_whatsapp_notes.sql
     cat <<'SQL'
 insert into auth.users(id,email) values ('00000000-0000-0000-0000-00000000000a','andreas@t'),('00000000-0000-0000-0000-00000000000b','juline@t'),('00000000-0000-0000-0000-00000000000c','intruso@t');
 insert into profiles(id,full_name,role) values ('00000000-0000-0000-0000-00000000000a','Andreas','director'),('00000000-0000-0000-0000-00000000000b','Juline','ceo');

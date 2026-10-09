@@ -40,7 +40,7 @@ supabase --workdir inbox-db migration list     # local e remoto devem aparecer i
 `migration repair` só grava a linha no ledger. Não executa o SQL. **Isto ainda não foi feito.**
 
 Alternativa sem o CLI (verificado em 08/10/2026: a tabela `supabase_migrations.schema_migrations` não existe no projeto Inbox):
-aplicar a primeira migration nova (por exemplo `proposed/inbox_hardening.sql`) com `apply_migration` do conector, que cria o ledger,
+aplicar a primeira migration nova (por exemplo `20261009001027_inbox_hardening.sql`) com `apply_migration` do conector, que cria o ledger,
 e em seguida registrar a baseline com um `insert` de metadados (`version = '20261008000000'`, `name = 'inbox_install'`).
 Isso não executa o SQL da baseline de novo. Depende de aprovação.
 

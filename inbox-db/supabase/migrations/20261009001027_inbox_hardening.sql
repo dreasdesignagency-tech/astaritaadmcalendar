@@ -1,4 +1,4 @@
--- PROPOSTA, NÃO APLICADA. Só rodar com aprovação explícita.
+-- APLICADA em 09/10/2026 no projeto Astarita Inbox (yappbzpayqejqpkfebho) como migration 20261009001027, com autorização do usuário.
 -- Projeto: Astarita Inbox (yappbzpayqejqpkfebho). Origem: alertas do Supabase Advisors (segurança e desempenho).
 -- Não apaga nada, não altera dados, não muda a estrutura das tabelas.
 --

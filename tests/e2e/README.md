@@ -1,6 +1,6 @@
 # Testes de ponta a ponta do Inbox (local)
 
-Rodam o app no navegador contra um Postgres local com **o SQL exato instalado** (baseline + `inbox-db/proposed/*.sql`), PostgREST
+Rodam o app no navegador contra um Postgres local com **o SQL exato instalado** (baseline + `as migrations de `inbox-db/supabase/migrations/``), PostgREST
 (o mesmo servidor de API do Supabase), JWT assinado e RLS ligada. Não usam nenhum projeto Supabase real e não falam com a Meta
 nem com provedor de IA de verdade.
 

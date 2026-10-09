@@ -1,5 +1,5 @@
-// ATENÇÃO: estendido à mão com `internal_notes` e `messages.wa_media_id` (migration inbox_whatsapp_notes, ainda não aplicada
-// no banco real). Regerar com `npm run inbox:types` depois de aplicá-la.
+// Tabelas e colunas conferidas contra os tipos gerados pelo banco real em 09/10/2026 (após as migrations 20261009001027 e
+// 20261009001210): mesmas 14 tabelas e colunas. Só as assinaturas das funções inbox_* são mantidas à mão (nomes de argumentos).
 // Gerado com o Supabase MCP (generate_typescript_types) a partir do projeto Astarita Inbox (yappbzpayqejqpkfebho).
 // Regerar com: npm run inbox:types. Nunca misturar com src/integrations/supabase/types.ts, que é do calendário.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
