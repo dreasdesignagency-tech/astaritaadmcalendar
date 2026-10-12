@@ -11,7 +11,8 @@ const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (sub, email, role = 'authenticated') => { const h = b64({ alg: 'HS256', typ: 'JWT' }), p = b64({ sub, email, role, aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 }); return `${h}.${p}.${createHmac('sha256', SECRET).update(`${h}.${p}`).digest('base64url')}`; };
 const TA = jwt(A, 'andreas@t'), TB = jwt(B, 'juline@t'), TX = jwt(X, 'intruso@t');
 const sql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: `do $$ begin perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false); end $$;\n${q}` }).toString().trim();
-const fx = (n) => readFileSync(`tests/fixtures/whatsapp/${n}.json`, 'utf8');
+import { shiftTs } from './fixture-time.mjs';
+const fx = (n) => shiftTs(readFileSync(`tests/fixtures/whatsapp/${n}.json`, 'utf8'));
 const sign = (raw, secret = APP_SECRET_REAL) => `sha256=${createHmac('sha256', secret).update(raw).digest('hex')}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let APP_SECRET_REAL = '';
@@ -193,7 +194,7 @@ sql(`update conversations set last_inbound_at = now()`);
 id = await pendingMsg(TA, conv, A, 'FORCE_DELAY corrida de status');
 const sending = call(OK_BASE, '/api/inbox/send', { token: TA, body: { messageId: id } });
 await sleep(400);
-const early = JSON.stringify({ object: 'whatsapp_business_account', entry: [{ id: 'W', changes: [{ field: 'messages', value: { messaging_product: 'whatsapp', statuses: [{ id: 'wamid.RACE1', status: 'delivered', timestamp: '1791500800', recipient_id: '5511999998888' }] } }] }] });
+const early = shiftTs(JSON.stringify({ object: 'whatsapp_business_account', entry: [{ id: 'W', changes: [{ field: 'messages', value: { messaging_product: 'whatsapp', statuses: [{ id: 'wamid.RACE1', status: 'delivered', timestamp: '1791500800', recipient_id: '5511999998888' }] } }] }] }));
 const rEarly = await hook(OK_BASE, early);
 check('status de mensagem ainda não registrada é aceito e guardado para depois (200)', rEarly.status === 200 && rEarly.json?.deferred === 1, rEarly.text);
 const sendRes = await sending;
@@ -202,7 +203,7 @@ check('quando o envio termina, o status que chegou antes é aplicado (entregue)'
 
 // ================================================================ status de entrega
 const sent1 = sql(`select id from messages where wa_message_id='wamid.SENT1'`);
-const stat = (waId, status, ts = '1791500900') => JSON.stringify({ object: 'whatsapp_business_account', entry: [{ id: 'W', changes: [{ field: 'messages', value: { messaging_product: 'whatsapp', statuses: [{ id: waId, status, timestamp: ts, recipient_id: '5511999998888' }] } }] }] });
+const stat = (waId, status, ts = '1791500900') => shiftTs(JSON.stringify({ object: 'whatsapp_business_account', entry: [{ id: 'W', changes: [{ field: 'messages', value: { messaging_product: 'whatsapp', statuses: [{ id: waId, status, timestamp: ts, recipient_id: '5511999998888' }] } }] }] }));
 await hook(OK_BASE, stat('wamid.SENT1', 'delivered'));
 check('status "entregue" atualiza a mensagem', row(sent1)[0] === 'delivered');
 await hook(OK_BASE, stat('wamid.SENT1', 'sent'));

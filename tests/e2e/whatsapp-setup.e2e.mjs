@@ -15,7 +15,8 @@ const jwt = (sub, email) => { const h = b64({ alg: 'HS256', typ: 'JWT' }), p = b
 const sql = (q) => execSync(`su postgres -c "psql -d inboxe2e -tAq"`, { input: `do $$ begin perform set_config('request.jwt.claims', '{"sub":"${A}"}', false); end $$;\n${q}` }).toString().trim();
 const results = [];
 const check = (name, ok, extra = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '  -> ' + extra}`); };
-const raw = readFileSync('tests/fixtures/whatsapp/text.json', 'utf8');
+import { shiftTs } from './fixture-time.mjs';
+const raw = shiftTs(readFileSync('tests/fixtures/whatsapp/text.json', 'utf8'));
 
 sql(`truncate contacts, tags, webhook_events, quick_replies, reminders, internal_notes, ai_suggestions cascade; update profiles set active=true;`);
 const ORG = sql(`select id from organizations where slug='astarita'`);

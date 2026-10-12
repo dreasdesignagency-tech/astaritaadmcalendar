@@ -27,12 +27,20 @@ end $$;
 create event trigger ensure_rls on ddl_command_end when tag in ('CREATE TABLE','CREATE TABLE AS','SELECT INTO') execute function public.rls_auto_enable();
 SQL
     cat inbox-db/supabase/migrations/20261008000000_inbox_install.sql
-    cat inbox-db/supabase/migrations/20261009001027_inbox_hardening.sql inbox-db/supabase/migrations/20261009001210_inbox_whatsapp_notes.sql inbox-db/supabase/migrations/20261010000000_inbox_multitenant.sql
+    cat inbox-db/supabase/migrations/20261009001027_inbox_hardening.sql inbox-db/supabase/migrations/20261009001210_inbox_whatsapp_notes.sql
+    # STACK_SCHEMA=legacy: banco SEM a migration multiempresa (como o projeto real está hoje).
+    if [ "${STACK_SCHEMA:-}" = legacy ]; then cat <<'SQL'
+insert into auth.users(id,email) values ('00000000-0000-0000-0000-00000000000a','andreas@t'),('00000000-0000-0000-0000-00000000000b','juline@t'),('00000000-0000-0000-0000-00000000000c','intruso@t');
+insert into profiles(id,full_name,role) values ('00000000-0000-0000-0000-00000000000a','Andreas','director'),('00000000-0000-0000-0000-00000000000b','Juline','ceo');
+SQL
+    exit_legacy=1; fi
+    [ -n "${exit_legacy:-}" ] || { cat inbox-db/supabase/migrations/20261010000000_inbox_multitenant.sql
     cat <<'SQL'
 insert into auth.users(id,email) values ('00000000-0000-0000-0000-00000000000a','andreas@t'),('00000000-0000-0000-0000-00000000000b','juline@t'),('00000000-0000-0000-0000-00000000000c','intruso@t');
 insert into profiles(id,full_name,role,org_id,access,is_platform_admin) select '00000000-0000-0000-0000-00000000000a','Andreas','director',o.id,'owner',true from organizations o where o.slug='astarita';
 insert into profiles(id,full_name,role,org_id,access,is_platform_admin) select '00000000-0000-0000-0000-00000000000b','Juline','ceo',o.id,'owner',false from organizations o where o.slug='astarita';
 SQL
+    }
   } | su postgres -c "psql -q -v ON_ERROR_STOP=1 -d inboxe2e" 2>&1 ) \
     || { echo "$out" | grep -v -E "NOTICE|WARNING|HINT"; echo "FALHA ao montar o banco de teste"; exit 1; }
 }

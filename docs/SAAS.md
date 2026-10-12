@@ -57,3 +57,12 @@ Os valores são apenas padrões iniciais; o preço que você cobra é decisão s
 | `INBOX_AI_PROVIDER`, `INBOX_AI_API_KEY`, `INBOX_AI_MODEL` | Assistente de IA (opcional) |
 
 Para gerar a `INBOX_SECRETS_KEY`: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` (guarde o resultado; não mande por chat).
+
+## Antes da migration (modo legado)
+
+Se o código novo subir antes da migration multiempresa ser aplicada, o login e o CRM continuam funcionando: o app
+reconhece que faltam as colunas novas (`org_id`, `access`, `is_platform_admin`) e trata todo mundo como uma empresa só,
+sem poder de administração. Nesse período **não** funcionam: tela Plataforma, gestão de equipe por API, conexão do WhatsApp
+por empresa, envio, mídia e IA (as rotas de servidor respondem com erro claro). Tudo isso volta ao aplicar a migration.
+Teste: `STACK_SCHEMA=legacy tests/e2e/stack.sh up` e `node tests/e2e/inbox.e2e.mjs` (36 de 37 passam; a que falha é a
+imagem recebida, que depende da rota de mídia).

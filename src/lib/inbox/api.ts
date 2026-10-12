@@ -1,4 +1,5 @@
 import { db } from "@/lib/inbox/client";
+import { isLegacySchemaError, legacyMyProfile, legacyPerson } from "./legacy";
 import type { ConversationRow, InboxProfile, MyProfile, PipelineStage } from "./types";
 
 /**
@@ -26,7 +27,17 @@ export async function fetchMyProfile(userId: string): Promise<MyProfile | null> 
     )
     .eq("id", userId)
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    if (!isLegacySchemaError(error)) throw error;
+    // Banco ainda sem a migration multiempresa: lê só as colunas antigas e segue em modo de empresa única.
+    const old = await db
+      .from("profiles")
+      .select("id, full_name, role, avatar_url, active")
+      .eq("id", userId)
+      .maybeSingle();
+    if (old.error) throw error;
+    return old.data ? legacyMyProfile(old.data as never) : null;
+  }
   return (data as unknown as MyProfile | null) ?? null;
 }
 
@@ -35,7 +46,15 @@ export async function fetchTeam(): Promise<InboxProfile[]> {
     .from("profiles")
     .select("id, full_name, role, avatar_url, active, org_id, access, is_platform_admin")
     .order("full_name");
-  if (error) throw error;
+  if (error) {
+    if (!isLegacySchemaError(error)) throw error;
+    const old = await db
+      .from("profiles")
+      .select("id, full_name, role, avatar_url, active")
+      .order("full_name");
+    if (old.error) throw old.error;
+    return (old.data ?? []).map((r) => legacyPerson(r as never));
+  }
   return (data ?? []) as InboxProfile[];
 }
 
