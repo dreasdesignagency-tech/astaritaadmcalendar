@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Motion · Clínica PorInteiro + Escolinha Daia Baby</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Montserrat:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="viewport">
+      <!-- Palco 1080x1920: tudo que está aqui dentro aparece na gravação -->
+      <div class="stage-frame" id="stageFrame">
+        <section class="stage" id="stage" aria-label="Motion do evento">
+          <!-- CENA 1 · fundo e elementos visuais -->
+          <div class="bg" data-anim="bg"></div>
+          <div class="deco deco--top" data-anim="deco"></div>
+          <div class="deco deco--bottom" data-anim="deco"></div>
+
+          <!-- Foto opcional (ativada em script.js > CONFIG.photo) -->
+          <figure class="photo" data-anim="photo" hidden>
+            <img alt="" />
+          </figure>
+
+          <div class="content">
+            <!-- CENA 3 · realização -->
+            <p class="partners" data-anim="partners">
+              <span>Clínica PorInteiro</span>
+              <span class="partners__plus">+</span>
+              <span>Escolinha Daia Baby</span>
+            </p>
+
+            <!-- CENA 2 · título principal (uma linha por .title__line) -->
+            <h1 class="title">
+              <span class="title__line"><span data-anim="title">Mães e filhos</span></span>
+              <span class="title__line title__line--italic">
+                <span data-anim="title">em movimento</span>
+              </span>
+            </h1>
+
+            <!-- CENA 4 · informações do evento -->
+            <ul class="info">
+              <li class="info__item" data-anim="info">
+                <span class="info__label">data</span>
+                <span class="info__value">24 de outubro</span>
+              </li>
+              <li class="info__item" data-anim="info">
+                <span class="info__label">dia</span>
+                <span class="info__value">sábado</span>
+              </li>
+              <li class="info__item" data-anim="info">
+                <span class="info__label">horário</span>
+                <span class="info__value">8h30</span>
+              </li>
+              <li class="info__item" data-anim="info">
+                <span class="info__label">local</span>
+                <span class="info__value">Poliesportivo</span>
+              </li>
+            </ul>
+
+            <!-- CENA 5 · proposta e pilares -->
+            <div class="proposal">
+              <p class="proposal__text" data-anim="proposal">
+                uma manhã especial<br />para mães e filhos
+              </p>
+              <ul class="pillars">
+                <li class="pillar" data-anim="pillar">movimento</li>
+                <li class="pillar" data-anim="pillar">autocuidado</li>
+                <li class="pillar" data-anim="pillar">conexão</li>
+              </ul>
+            </div>
+
+            <!-- CENA 6 · inscrição e dress code -->
+            <div class="highlights">
+              <p class="price" data-anim="price">
+                <span class="price__label">inscrição</span>
+                <span class="price__value">R$ 30</span>
+              </p>
+              <p class="dresscode" data-anim="dresscode">venha de rosa</p>
+            </div>
+
+            <!-- CENA FINAL · CTA -->
+            <p class="cta" data-anim="cta">
+              inscreva-se pelo link da bio
+              <span class="cta__arrow" aria-hidden="true">↗</span>
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <!-- Controles: ficam fora do palco e não entram na gravação -->
+      <aside class="controls" id="controls">
+        <div class="controls__buttons">
+          <button type="button" id="btnRestart">Reiniciar animação</button>
+          <button type="button" id="btnPause">Pausar</button>
+          <button type="button" id="btnPlay">Play</button>
+        </div>
+        <div class="controls__progress">
+          <div class="controls__bar"><span id="progressBar"></span></div>
+          <span class="controls__time" id="timeLabel">0.0s</span>
+        </div>
+        <p class="controls__hint">
+          Atalhos: <kbd>Espaço</kbd> pausa/play · <kbd>R</kbd> reinicia · <kbd>H</kbd> esconde os
+          controles. Para gravar, abra com <code>?rec</code> numa janela de 1080×1920.
+        </p>
+      </aside>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

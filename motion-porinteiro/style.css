@@ -1,0 +1,410 @@
+/* ==========================================================
+   Identidade visual
+   Ajuste aqui para bater com a arte original
+   ========================================================== */
+:root {
+  --stage-w: 1080px;
+  --stage-h: 1920px;
+
+  --color-bg: #f8e3e8;
+  --color-bg-2: #fdf3f0;
+  --color-rose: #e48aa5;
+  --color-rose-deep: #b8436a;
+  --color-ink: #4a2236;
+  --color-ink-soft: rgba(74, 34, 54, 0.72);
+  --color-cream: #fff8f5;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+
+  /* imagem de fundo opcional, definida em script.js > CONFIG.background */
+  --bg-image: none;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: #1d1418;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+/* ==========================================================
+   Página (fora do palco)
+   ========================================================== */
+.viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+}
+
+/* O frame recebe o tamanho já escalado; o palco interno é sempre 1080x1920 */
+.stage-frame {
+  position: relative;
+  flex: none;
+  width: calc(var(--stage-w) * var(--scale, 1));
+  height: calc(var(--stage-h) * var(--scale, 1));
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--stage-w);
+  height: var(--stage-h);
+  overflow: hidden;
+  transform: scale(var(--scale, 1));
+  transform-origin: top left;
+  background: var(--color-bg);
+}
+
+/* Modo gravação: sem moldura, sem controles, palco colado no canto */
+body.is-rec .viewport {
+  padding: 0;
+  gap: 0;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+body.is-rec .stage-frame {
+  box-shadow: none;
+}
+body.is-rec .controls,
+body.controls-hidden .controls {
+  display: none;
+}
+
+/* ==========================================================
+   CENA 1 · fundo
+   ========================================================== */
+.bg {
+  position: absolute;
+  inset: -40px;
+  background:
+    var(--bg-image) center / cover no-repeat,
+    radial-gradient(120% 70% at 85% 0%, var(--color-bg-2) 0%, transparent 60%),
+    radial-gradient(90% 60% at 0% 100%, rgba(228, 138, 165, 0.35) 0%, transparent 70%),
+    var(--color-bg);
+  will-change: transform, opacity;
+}
+
+.deco {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.deco--top {
+  width: 620px;
+  height: 620px;
+  top: -260px;
+  right: -220px;
+  border: 2px solid rgba(184, 67, 106, 0.22);
+}
+
+.deco--bottom {
+  width: 780px;
+  height: 780px;
+  bottom: -420px;
+  left: -300px;
+  background: rgba(228, 138, 165, 0.18);
+}
+
+/* Foto opcional com parallax */
+.photo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+}
+.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+/* ==========================================================
+   Conteúdo
+   ========================================================== */
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 140px 96px 150px;
+}
+
+/* CENA 3 · realização (secundária) */
+.partners {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+.partners__plus {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 400;
+  color: var(--color-rose-deep);
+}
+
+/* CENA 2 · título */
+.title {
+  margin-top: -40px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 148px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+.title__line {
+  display: block;
+  overflow: hidden; /* máscara da revelação */
+  padding-bottom: 0.08em;
+}
+.title__line > span {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+.title__line--italic {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--color-rose-deep);
+}
+
+/* CENA 4 · informações */
+.info {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.info__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 30px 36px;
+  border-radius: 28px;
+  background: rgba(255, 248, 245, 0.72);
+  border: 1px solid rgba(184, 67, 106, 0.14);
+  will-change: transform, opacity;
+}
+.info__label {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-rose-deep);
+}
+.info__value {
+  font-family: var(--font-display);
+  font-size: 54px;
+  line-height: 1.1;
+  color: var(--color-ink);
+}
+
+/* CENA 5 · proposta */
+.proposal {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.proposal__text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 66px;
+  line-height: 1.15;
+  color: var(--color-ink);
+}
+.pillars {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.pillar {
+  padding: 16px 34px;
+  border-radius: 999px;
+  border: 2px solid var(--color-rose-deep);
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--color-rose-deep);
+  will-change: transform, opacity;
+}
+
+/* CENA 6 · destaques */
+.highlights {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+}
+.price__label {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+.price__value {
+  font-family: var(--font-display);
+  font-size: 110px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-ink);
+}
+.dresscode {
+  padding: 22px 38px;
+  border-radius: 999px;
+  background: var(--color-rose);
+  color: var(--color-cream);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* CENA FINAL · CTA */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 34px 40px;
+  border-radius: 999px;
+  background: var(--color-rose-deep);
+  color: var(--color-cream);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.cta__arrow {
+  font-size: 40px;
+}
+
+/* Estado inicial: invisível até o JS animar (evita "piscar" no carregamento) */
+[data-anim] {
+  opacity: 0;
+}
+
+/* ==========================================================
+   Controles (fora do palco)
+   ========================================================== */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 260px;
+  color: #f4e6ea;
+  font-size: 14px;
+}
+.controls__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.controls button {
+  padding: 12px 16px;
+  border: 1px solid rgba(244, 230, 234, 0.25);
+  border-radius: 10px;
+  background: rgba(244, 230, 234, 0.08);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.controls button:hover {
+  background: rgba(244, 230, 234, 0.18);
+}
+.controls button[aria-pressed="true"] {
+  background: #b8436a;
+  border-color: #b8436a;
+}
+.controls__progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.controls__bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(244, 230, 234, 0.18);
+  overflow: hidden;
+}
+.controls__bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #e48aa5;
+}
+.controls__time {
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.controls__hint {
+  line-height: 1.5;
+  opacity: 0.65;
+}
+.controls kbd,
+.controls code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(244, 230, 234, 0.12);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+/* Telas estreitas: controles abaixo do palco */
+@media (max-width: 700px) {
+  .viewport {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+  .controls {
+    width: 100%;
+  }
+  .controls__buttons {
+    flex-direction: row;
+  }
+  .controls__buttons button {
+    flex: 1;
+  }
+}
