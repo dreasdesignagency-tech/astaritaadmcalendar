@@ -36,9 +36,9 @@ export default function PageOne({ onEgg }: { onEgg: () => void }) {
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className="-ml-[9%] w-[31%] shrink-0"
+              className="-ml-[4%] w-[31%] shrink-0"
             >
-              <Photo src={left.src} alt={left.alt} grayscale={grayscale} priority sizes="(max-width: 560px) 31vw, 180px" className="aspect-[3/4.1] w-full">
+              <Photo src={left.src} position={left.position} alt={left.alt} grayscale={grayscale} priority sizes="(max-width: 560px) 31vw, 180px" className="aspect-[3/4.1] w-full">
                 <Sticker className="-bottom-2 -right-3">{page1.stickers.left}</Sticker>
               </Photo>
             </motion.div>
@@ -50,7 +50,7 @@ export default function PageOne({ onEgg }: { onEgg: () => void }) {
               transition={{ delay: 0.3, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
               className="z-[1] w-[56%] shrink-0"
             >
-              <Photo src={center.src} alt={center.alt} grayscale={grayscale} priority sizes="(max-width: 560px) 56vw, 320px" className="aspect-[4/5] w-full">
+              <Photo src={center.src} position={center.position} alt={center.alt} grayscale={grayscale} priority sizes="(max-width: 560px) 56vw, 320px" className="aspect-[4/5] w-full">
                 <Sticker className="-left-2 top-[18%] sm:-left-3">{page1.stickers.center}</Sticker>
               </Photo>
             </motion.div>
@@ -60,9 +60,9 @@ export default function PageOne({ onEgg }: { onEgg: () => void }) {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.45, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className="-mr-[9%] w-[31%] shrink-0"
+              className="-mr-[4%] w-[31%] shrink-0"
             >
-              <Photo src={right.src} alt={right.alt} grayscale={grayscale} sizes="(max-width: 560px) 31vw, 180px" className="aspect-[3/4.1] w-full">
+              <Photo src={right.src} position={right.position} alt={right.alt} grayscale={grayscale} sizes="(max-width: 560px) 31vw, 180px" className="aspect-[3/4.1] w-full">
                 <Sticker className="-bottom-2 -left-3">{page1.stickers.right}</Sticker>
               </Photo>
             </motion.div>

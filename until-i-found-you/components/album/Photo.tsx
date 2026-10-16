@@ -12,6 +12,7 @@ export default function Photo({
   grayscale,
   priority = false,
   sizes,
+  position,
   className = "",
   children,
 }: {
@@ -20,6 +21,7 @@ export default function Photo({
   grayscale: boolean;
   priority?: boolean;
   sizes: string;
+  position?: string;
   className?: string;
   children?: React.ReactNode;
 }) {
@@ -38,6 +40,7 @@ export default function Photo({
           loading={priority ? undefined : "lazy"}
           unoptimized={usePlaceholder}
           onError={() => setFailed(true)}
+          style={position ? { objectPosition: position } : undefined}
           className={`object-cover ${grayscale && !usePlaceholder ? "grayscale" : ""}`}
         />
       </div>

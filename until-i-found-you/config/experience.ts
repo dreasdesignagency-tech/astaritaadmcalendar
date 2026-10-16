@@ -330,11 +330,12 @@ export const config = {
     /**
      * Coloque suas fotos em /public/photos com estes nomes (ou troque aqui).
      * Enquanto o arquivo não existir, aparece um espaço elegante de placeholder.
+     * position: onde fica o foco do corte (x% y%), para os rostos não serem cortados.
      */
     photos: [
-      { src: "/photos/foto-1.jpg", alt: "Andreas e Juline, foto 1" },
-      { src: "/photos/foto-2.jpg", alt: "Andreas e Juline, foto 2" },
-      { src: "/photos/foto-3.jpg", alt: "Andreas e Juline, foto 3" },
+      { src: "/photos/foto-1.jpg", alt: "Andreas e Juline sorrindo juntos dentro de um carro", position: "50% 40%" },
+      { src: "/photos/foto-2.jpg", alt: "Andreas e Juline frente a frente ao pôr do sol", position: "50% 55%" },
+      { src: "/photos/foto-3.jpg", alt: "Andreas abraça Juline e os dois sorriem para a câmera", position: "35% 50%" },
     ],
     /** fotos em preto e branco (apenas filtro de cor, sem distorcer) */
     grayscale: true,
@@ -376,10 +377,10 @@ export const config = {
     songs: [
       {
         title: "Você é assim",
-        artist: "[CONFIGURAR ARTISTA]",
+        artist: "Aliança",
         dedication: "[CONFIGURAR DEDICATÓRIA 1] A nossa música. Escreva aqui o que ela significa pra você.",
         cover: "/music/capa-1.jpg",
-        url: "",
+        url: "https://open.spotify.com/intl-pt/track/3HVbfel1UyI3CPirCfnSWe",
         provider: "Spotify",
         placeholder: true,
       },
@@ -388,7 +389,7 @@ export const config = {
         artist: "[ARTISTA]",
         dedication: "[CONFIGURAR DEDICATÓRIA 2] Escreva aqui por que essa música lembra dela.",
         cover: "/music/capa-2.jpg",
-        url: "",
+        url: "https://open.spotify.com/intl-pt/track/3qs9dRNSLaJ5l8pz2o6PdU",
         provider: "Spotify",
         placeholder: true,
       },
@@ -397,8 +398,8 @@ export const config = {
         artist: "[ARTISTA]",
         dedication: "[CONFIGURAR DEDICATÓRIA 3] Escreva aqui por que essa música lembra dela.",
         cover: "/music/capa-3.jpg",
-        url: "",
-        provider: "YouTube",
+        url: "https://open.spotify.com/intl-pt/track/3idU6lZVKD6hvGjnpSHde8",
+        provider: "Spotify",
         placeholder: true,
       },
     ] as Song[],
