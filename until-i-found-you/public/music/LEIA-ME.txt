@@ -1,0 +1,2 @@
+Coloque aqui as capas dos albuns (quadradas): capa-1.jpg, capa-2.jpg, capa-3.jpg
+Os nomes e caminhos ficam em config/experience.ts.

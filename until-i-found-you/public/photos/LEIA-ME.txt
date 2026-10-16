@@ -1,0 +1,5 @@
+Coloque aqui suas fotos:
+  foto-1.jpg  (esquerda)
+  foto-2.jpg  (central, a maior)
+  foto-3.jpg  (direita)
+Retratos (vertical) funcionam melhor. Os nomes e caminhos ficam em config/experience.ts.
