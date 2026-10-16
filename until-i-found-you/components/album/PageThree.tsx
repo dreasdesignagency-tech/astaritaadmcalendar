@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { config, type Song } from "@/config/experience";
 import { Rich, Star } from "../ornaments";
+import SpotifyPlayer, { trackIdFromUrl } from "./SpotifyPlayer";
 
 function Cover({ song, index }: { song: Song; index: number }) {
   const [failed, setFailed] = useState(false);
@@ -34,8 +35,25 @@ function Cover({ song, index }: { song: Song; index: number }) {
   );
 }
 
-function SongRow({ song, index, flip }: { song: Song; index: number; flip: boolean }) {
-  const [out, setOut] = useState(false);
+function SongRow({
+  song,
+  index,
+  flip,
+  active,
+  onToggle,
+}: {
+  song: Song;
+  index: number;
+  flip: boolean;
+  active: boolean;
+  onToggle: () => void;
+}) {
+  const [hover, setHover] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const trackId = trackIdFromUrl(song.url);
+  const canPlay = !!trackId && !failed;
+  const out = hover || active;
 
   return (
     <motion.li
@@ -43,16 +61,19 @@ function SongRow({ song, index, flip }: { song: Song; index: number; flip: boole
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-      className={`flex items-center gap-3 ${flip ? "flex-row-reverse" : ""}`}
     >
+      <div className={`flex items-center gap-3 ${flip ? "flex-row-reverse" : ""}`}>
       {/* capa + disco saindo pela lateral */}
       <button
         type="button"
-        onClick={() => setOut((o) => !o)}
-        onPointerEnter={(e) => e.pointerType === "mouse" && setOut(true)}
-        onPointerLeave={(e) => e.pointerType === "mouse" && setOut(false)}
-        aria-pressed={out}
-        aria-label={`Girar o disco de ${song.title}`}
+        onClick={() => {
+          setFailed(false);
+          onToggle();
+        }}
+        onPointerEnter={(e) => e.pointerType === "mouse" && setHover(true)}
+        onPointerLeave={(e) => e.pointerType === "mouse" && setHover(false)}
+        aria-pressed={active}
+        aria-label={active ? `Parar ${song.title}` : canPlay ? `Tocar 30 segundos de ${song.title}` : `Girar o disco de ${song.title}`}
         className="relative shrink-0"
         style={{
           width: "min(34vw, 180px)",
@@ -70,7 +91,7 @@ function SongRow({ song, index, flip }: { song: Song; index: number; flip: boole
           >
             <div
               className="vinyl relative h-full w-full rounded-full"
-              style={{ animation: out ? "spin-slow 4s linear infinite" : undefined }}
+              style={{ animation: playing || (hover && !active) ? "spin-slow 4s linear infinite" : undefined }}
             />
           </div>
           <div className="relative z-10 h-full w-full overflow-hidden border-2 border-wine bg-sand">
@@ -105,12 +126,26 @@ function SongRow({ song, index, flip }: { song: Song; index: number; flip: boole
           )
         )}
       </div>
+      </div>
+
+      {active && canPlay && trackId && (
+        <div className="mt-4">
+          <SpotifyPlayer trackId={trackId} onPlaying={setPlaying} onError={() => setFailed(true)} />
+          <p className="mt-1.5 text-center text-[0.65rem] tracking-[0.12em] text-mute">
+            30 SEGUNDOS DA NOSSA MÚSICA
+          </p>
+        </div>
+      )}
+      {active && failed && (
+        <p className="mt-3 text-center text-xs text-mute">Não deu para carregar o player. Use o botão &ldquo;Ouvir&rdquo; acima.</p>
+      )}
     </motion.li>
   );
 }
 
 export default function PageThree({ onEgg }: { onEgg: () => void }) {
   const { page3, songs } = config.album;
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
 
   return (
     <div className="relative flex min-h-full flex-col overflow-hidden px-5 pb-8 pt-8 sm:px-10">
@@ -135,7 +170,14 @@ export default function PageThree({ onEgg }: { onEgg: () => void }) {
 
       <ul className="relative mt-10 flex-1 space-y-9">
         {songs.map((s, i) => (
-          <SongRow key={i} song={s} index={i} flip={i % 2 === 1} />
+          <SongRow
+            key={i}
+            song={s}
+            index={i}
+            flip={i % 2 === 1}
+            active={activeIdx === i}
+            onToggle={() => setActiveIdx((a) => (a === i ? null : i))}
+          />
         ))}
       </ul>
 
