@@ -10,7 +10,12 @@ export type Progress = {
   solved: string[];
   /** capítulo exibido (0..total). total = desafio final */
   cursor: number;
+  /** dicas usadas, por pergunta ("capitulo:indice") */
   hints: Record<string, number>;
+  /** perguntas acertadas por capítulo */
+  done: Record<string, number>;
+  /** perguntas cujo "parabéns" já foi visto */
+  ack: Record<string, number>;
   finalDone: boolean;
   opened: boolean;
   page: number;
@@ -22,13 +27,15 @@ export const initialProgress: Progress = {
   solved: [],
   cursor: 0,
   hints: {},
+  done: {},
+  ack: {},
   finalDone: false,
   opened: false,
   page: 0,
   sound: false,
 };
 
-function sanitize(raw: unknown, chapterIds: string[]): Progress {
+function sanitize(raw: unknown, chapterIds: string[], roundCounts: number[]): Progress {
   const p = { ...initialProgress, ...(typeof raw === "object" && raw ? (raw as Partial<Progress>) : {}) };
   // só aceita capítulos resolvidos em sequência, sem pular nenhum
   const solved: string[] = [];
@@ -40,7 +47,19 @@ function sanitize(raw: unknown, chapterIds: string[]): Progress {
   const cursor = Math.max(0, Math.min(Number(p.cursor) || 0, solved.length));
   const allSolved = solved.length === total;
   const finalDone = allSolved && cursor >= total && !!p.finalDone;
+  const rawDone = typeof p.done === "object" && p.done ? p.done : {};
+  const rawAck = typeof p.ack === "object" && p.ack ? p.ack : {};
+  const done: Record<string, number> = {};
+  const ack: Record<string, number> = {};
+  chapterIds.forEach((id, i) => {
+    const n = roundCounts[i] ?? 1;
+    const isSolved = solved.includes(id);
+    done[id] = isSolved ? n : Math.max(0, Math.min(Number(rawDone[id]) || 0, n - 1));
+    ack[id] = Math.max(0, Math.min(Number(rawAck[id]) || 0, done[id]!));
+  });
   return {
+    done,
+    ack,
     started: !!p.started,
     solved,
     cursor,
@@ -52,10 +71,11 @@ function sanitize(raw: unknown, chapterIds: string[]): Progress {
   };
 }
 
-export function useProgress(chapterIds: string[]) {
+export function useProgress(chapterIds: string[], roundCounts: number[]) {
   const [state, setState] = useState<Progress>(initialProgress);
   const [ready, setReady] = useState(false);
   const idsKey = chapterIds.join("|");
+  const countsKey = roundCounts.join("|");
 
   useEffect(() => {
     let loaded: unknown = null;
@@ -65,9 +85,9 @@ export function useProgress(chapterIds: string[]) {
     } catch {
       /* armazenamento indisponível: segue sem salvar */
     }
-    setState(sanitize(loaded, idsKey.split("|")));
+    setState(sanitize(loaded, idsKey.split("|"), countsKey.split("|").map(Number)));
     setReady(true);
-  }, [idsKey]);
+  }, [idsKey, countsKey]);
 
   useEffect(() => {
     if (!ready) return;

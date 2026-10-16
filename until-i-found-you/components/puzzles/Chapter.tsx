@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Lightbulb } from "lucide-react";
 import { config, type Chapter as ChapterT } from "@/config/experience";
@@ -14,12 +14,14 @@ type Props = {
   chapter: ChapterT;
   index: number;
   total: number;
-  solved: boolean;
+  done: number;
+  ack: number;
   solvedIds: string[];
-  hintsUsed: number;
+  hintsByRound: number[];
   sound: boolean;
-  onSolve: () => void;
-  onHint: () => void;
+  onAnswer: () => void;
+  onAck: () => void;
+  onHint: (round: number) => void;
   onNext: () => void;
 };
 
@@ -27,11 +29,13 @@ export default function Chapter({
   chapter,
   index,
   total,
-  solved,
+  done,
+  ack,
   solvedIds,
-  hintsUsed,
+  hintsByRound,
   sound,
-  onSolve,
+  onAnswer,
+  onAck,
   onHint,
   onNext,
 }: Props) {
@@ -42,15 +46,30 @@ export default function Chapter({
   const inputRef = useRef<HTMLInputElement>(null);
   const { ui } = config;
   const isLast = index === total - 1;
-  const hints = chapter.hints.slice(0, hintsUsed);
-  const hasMoreHints = hintsUsed < chapter.hints.length;
+  const n = chapter.rounds.length;
+  const solved = done >= n;
+  // pergunta mostrada: a seguinte à última acertada, ou a última se o capítulo acabou
+  const interim = !solved && done > ack;
+  const roundIndex = solved ? n - 1 : interim ? done - 1 : done;
+  const round = chapter.rounds[roundIndex]!;
+  const hintsUsed = hintsByRound[done] ?? 0;
+  const hints = round.hints.slice(0, hintsUsed);
+  const hasMoreHints = hintsUsed < round.hints.length;
+  const roundKey = `${chapter.id}:${done}`;
+
+  useEffect(() => {
+    setValue("");
+    setMessage(null);
+    setWrongCount(0);
+    setShakeKey(0);
+  }, [roundKey]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (isCorrect(value, chapter.answers)) {
+    if (isCorrect(value, round.answers)) {
       setMessage(null);
       playSound("success", sound);
-      onSolve();
+      onAnswer();
       return;
     }
     const msgs = config.wrongMessages;
@@ -94,7 +113,9 @@ export default function Chapter({
         <Frame className="px-6 pb-8 pt-7 sm:px-12">
           <div className="flex items-start justify-between">
             <span className="eyebrow">{chapter.label}</span>
-            <span className="eyebrow">capítulo</span>
+            <span className="eyebrow">
+              {n > 1 ? `pergunta ${Math.min(roundIndex + 1, n)} de ${n}` : "capítulo"}
+            </span>
           </div>
 
           <div className="mt-6 flex items-end gap-4">
@@ -104,11 +125,11 @@ export default function Chapter({
             </h2>
           </div>
 
-          <p className="mt-6 text-[0.98rem] leading-relaxed text-[#4d3d3d]">{chapter.question}</p>
+          <p className="mt-6 text-[0.98rem] leading-relaxed text-[#4d3d3d]">{round.question}</p>
 
           <AnimatePresence mode="wait" initial={false}>
-            {!solved ? (
-              <motion.div key="ask" exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+            {!solved && !interim ? (
+              <motion.div key={`ask-${done}`} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
                 <form onSubmit={submit} className="mt-7" noValidate>
                   <label htmlFor="answer" className="sr-only">
                     Sua resposta
@@ -122,12 +143,12 @@ export default function Chapter({
                         setValue(e.target.value);
                         if (message) setMessage(null);
                       }}
-                      inputMode={chapter.inputMode ?? "text"}
+                      inputMode={round.inputMode ?? "text"}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
-                      placeholder={chapter.inputPlaceholder}
+                      placeholder={round.inputPlaceholder}
                       aria-invalid={!!message}
                       aria-describedby={message ? "feedback" : undefined}
                       className="w-full border-0 border-b border-wine/60 bg-transparent px-0 py-3 font-serif text-2xl italic text-wine placeholder:text-mute/60 focus:border-wine focus:outline-none focus:ring-0"
@@ -151,7 +172,7 @@ export default function Chapter({
                       disabled={!hasMoreHints}
                       onClick={() => {
                         playSound("tap", sound);
-                        onHint();
+                        onHint(done);
                       }}
                       className="inline-flex items-center gap-2 border border-wine/40 px-5 py-3.5 text-[0.7rem] tracking-[0.15em] text-wine transition hover:border-wine disabled:cursor-not-allowed disabled:opacity-40"
                     >
@@ -171,7 +192,7 @@ export default function Chapter({
                         className="text-sm italic leading-relaxed text-mute"
                       >
                         <span className="not-italic text-wine">
-                          Dica {i + 1}/{chapter.hints.length}.{" "}
+                          Dica {i + 1}/{round.hints.length}.{" "}
                         </span>
                         {h}
                       </motion.li>
@@ -179,20 +200,21 @@ export default function Chapter({
                   </ol>
                 )}
 
-                {config.showPlaceholderNotes && chapter.placeholder && (
+                {config.showPlaceholderNotes && round.placeholder && (
                   <p className="mt-6 rounded-sm bg-sand px-3 py-2 text-[0.72rem] leading-snug text-mute">
-                    {chapter.placeholderNote}
+                    {round.placeholderNote}
                   </p>
                 )}
               </motion.div>
             ) : (
               <motion.div
-                key="done"
+                key={`done-${done}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6 }}
                 className="mt-8"
               >
+                {solved && (
                 <div className="relative border border-wine/60 px-4 py-7 text-center">
                   <span className="eyebrow absolute -top-2 left-1/2 -translate-x-1/2 bg-paper px-3">
                     {ui.secretWord}
@@ -220,6 +242,7 @@ export default function Chapter({
                     <Heart className="h-3.5 w-3.5" />
                   </motion.div>
                 </div>
+                )}
 
                 <motion.p
                   initial={{ opacity: 0, y: 8 }}
@@ -227,19 +250,19 @@ export default function Chapter({
                   transition={{ delay: 0.9, duration: 0.8 }}
                   className="mt-6 font-serif text-xl italic leading-snug text-[#4d3d3d]"
                 >
-                  {chapter.success}
+                  {round.success}
                 </motion.p>
 
-                {chapter.scripture && (
+                {round.scripture && (
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1.4, duration: 0.8 }}
                     className="mt-4 text-[0.78rem] leading-relaxed text-mute"
                   >
-                    <span className="tracking-[0.15em] text-wine">{chapter.scripture.ref.toUpperCase()}</span>
+                    <span className="tracking-[0.15em] text-wine">{round.scripture.ref.toUpperCase()}</span>
                     <span className="mx-2 text-wine/40">·</span>
-                    <span className="italic">{chapter.scripture.text}</span>
+                    <span className="italic">{round.scripture.text}</span>
                   </motion.p>
                 )}
 
@@ -250,12 +273,13 @@ export default function Chapter({
                   transition={{ delay: 1.6, duration: 0.6 }}
                   onClick={() => {
                     playSound("tap", sound);
-                    onNext();
+                    if (solved) onNext();
+                    else onAck();
                   }}
                   autoFocus
                   className="group mt-8 inline-flex items-center gap-3 border border-wine bg-wine px-6 py-3.5 text-[0.7rem] font-medium tracking-[0.2em] text-paper transition hover:bg-crimson active:scale-[0.98]"
                 >
-                  {isLast ? ui.toFinal : ui.nextChapter}
+                  {!solved ? ui.nextQuestion : isLast ? ui.toFinal : ui.nextChapter}
                   <ArrowRight size={14} className="transition group-hover:translate-x-1" />
                 </motion.button>
               </motion.div>

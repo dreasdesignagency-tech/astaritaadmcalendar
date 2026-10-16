@@ -78,7 +78,7 @@ export default function PageTwo() {
                 className={
                   i === 0
                     ? "font-serif text-3xl italic text-wine"
-                    : "text-[0.98rem] leading-[1.75] text-[#4d3d3d]"
+                    : "whitespace-pre-line text-[0.98rem] leading-[1.75] text-[#4d3d3d]"
                 }
               >
                 {p}

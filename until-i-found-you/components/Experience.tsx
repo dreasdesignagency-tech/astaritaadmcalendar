@@ -11,9 +11,10 @@ import Album from "./album/Album";
 import TopBar from "./TopBar";
 
 const chapterIds = config.chapters.map((c) => c.id);
+const roundCounts = config.chapters.map((c) => c.rounds.length);
 
 export default function Experience() {
-  const { state, update, reset, ready } = useProgress(chapterIds);
+  const { state, update, reset, ready } = useProgress(chapterIds, roundCounts);
   const total = config.chapters.length;
 
   // fundo vinho enquanto o progresso salvo é carregado
@@ -33,14 +34,25 @@ export default function Experience() {
         chapter={chapter}
         index={state.cursor}
         total={total}
-        solved={state.solved.includes(chapter.id)}
+        done={state.done[chapter.id] ?? 0}
+        ack={state.ack[chapter.id] ?? 0}
         solvedIds={state.solved}
-        hintsUsed={state.hints[chapter.id] ?? 0}
+        hintsByRound={chapter.rounds.map((_, r) => state.hints[`${chapter.id}:${r}`] ?? 0)}
         sound={state.sound}
-        onSolve={() =>
-          update((s) => ({ solved: s.solved.includes(chapter.id) ? s.solved : [...s.solved, chapter.id] }))
+        onAnswer={() =>
+          update((s) => {
+            const d = (s.done[chapter.id] ?? 0) + 1;
+            const finished = d >= chapter.rounds.length;
+            return {
+              done: { ...s.done, [chapter.id]: d },
+              solved: finished && !s.solved.includes(chapter.id) ? [...s.solved, chapter.id] : s.solved,
+            };
+          })
         }
-        onHint={() => update((s) => ({ hints: { ...s.hints, [chapter.id]: (s.hints[chapter.id] ?? 0) + 1 } }))}
+        onAck={() => update((s) => ({ ack: { ...s.ack, [chapter.id]: s.done[chapter.id] ?? 0 } }))}
+        onHint={(r) =>
+          update((s) => ({ hints: { ...s.hints, [`${chapter.id}:${r}`]: (s.hints[`${chapter.id}:${r}`] ?? 0) + 1 } }))
+        }
         onNext={() => update((s) => (s.solved.includes(chapter.id) ? { cursor: s.cursor + 1 } : {}))}
       />
     );

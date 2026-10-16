@@ -13,12 +13,7 @@
  * ============================================================
  */
 
-export type Chapter = {
-  id: string;
-  number: string;
-  /** rótulo pequeno acima do título */
-  label: string;
-  title: string;
+export type Round = {
   question: string;
   /** respostas aceitas (maiúsculas, acentos e espaços extras são ignorados) */
   answers: string[];
@@ -26,14 +21,25 @@ export type Chapter = {
   inputMode?: "text" | "numeric";
   /** dicas em ordem; cada clique em "dica" libera a próxima */
   hints: string[];
+  /** mensagem ao acertar (a da última pergunta aparece junto com a palavra secreta) */
   success: string;
   /** referência discreta exibida abaixo da mensagem de sucesso */
   scripture?: { ref: string; text: string };
-  /** palavra secreta revelada */
-  word: string;
   /** true = a resposta ainda é provisória e precisa ser trocada */
   placeholder?: boolean;
   placeholderNote?: string;
+};
+
+export type Chapter = {
+  id: string;
+  number: string;
+  /** rótulo pequeno acima do título */
+  label: string;
+  title: string;
+  /** perguntas do capítulo, em ordem. A palavra só é revelada depois da última. */
+  rounds: Round[];
+  /** palavra secreta revelada */
+  word: string;
 };
 
 export const config = {
@@ -63,101 +69,203 @@ export const config = {
       number: "01",
       label: "O começo",
       title: "O dia em que tudo mudou.",
-      question:
-        "Antes de sermos nós, existiu um dia que mudou tudo. Você lembra qual foi?",
-      // [CONFIGURAR DATA OFICIAL DO INÍCIO DO NAMORO] no formato DD/MM/AAAA
-      answers: ["00/00/0000"],
-      inputPlaceholder: "DD/MM/AAAA",
-      inputMode: "text",
-      hints: [
-        "Pense no dia em que a gente deixou de ser só amigos e passou a ser nós dois.",
-        "É uma data completa: dia, mês e ano, separados por barra.",
-        "Escreva no formato DD/MM/AAAA, por exemplo 05/03/2024.",
-      ],
-      success: "Foi nesse dia que Deus começou um dos capítulos mais bonitos da minha vida.",
       word: "VOCÊ",
-      placeholder: true,
-      placeholderNote: "Resposta provisória: digite 00/00/0000. Troque pela data real em config/experience.ts.",
+      rounds: [
+        {
+          question: "Antes de sermos nós, a gente se conheceu. Em que dia e mês foi isso?",
+          answers: ["14/10", "14/10/2024"],
+          inputPlaceholder: "DD/MM",
+          hints: [
+            "Foi em outubro de 2024.",
+            "Foi lá pela metade do mês.",
+            "Escreva só dia e mês, separados por barra. O dia é o 14.",
+          ],
+          success: "Foi aí que tudo começou, mesmo sem a gente saber.",
+        },
+        {
+          question: "Depois de nos conhecermos, chegou o primeiro dia em que nos vimos pessoalmente. Que data foi essa?",
+          answers: ["20/10/2024", "20/10"],
+          inputPlaceholder: "DD/MM/AAAA",
+          hints: [
+            "Foi poucos dias depois de a gente se conhecer.",
+            "Ainda em outubro de 2024, e foi no domingo.",
+            "O dia tem dois números iguais a vinte.",
+          ],
+          success: "Foi nesse dia que Deus começou um dos capítulos mais bonitos da minha vida.",
+        },
+      ],
     },
     {
       id: "primeira-memoria",
       number: "02",
       label: "A primeira memória",
       title: "Onde tudo começou.",
-      question:
-        "O tempo passou, mas existe um lugar que sempre vai me lembrar de nós. Onde foi nosso primeiro encontro?",
-      // [CONFIGURAR LOCAL DO PRIMEIRO ENCONTRO] (pode listar várias formas de escrever)
-      answers: ["local do primeiro encontro"],
-      inputPlaceholder: "Escreva o nome do lugar",
-      hints: [
-        "Não foi um lugar qualquer: ele ainda faz a gente sorrir quando passa por perto.",
-        "Pense no lugar, não no dia. Pode ser só o nome, sem endereço.",
-        "Se o lugar tem mais de um jeito de ser chamado, qualquer um deles vale.",
-      ],
-      success:
-        "Eu não sabia tudo que a gente viveria depois daquele dia. Mas hoje, olhando para trás, sou muito grato por ele ter acontecido.",
       word: "É",
-      placeholder: true,
-      placeholderNote:
-        'Resposta provisória: digite "local do primeiro encontro". Troque pelo lugar real em config/experience.ts.',
+      rounds: [
+        {
+          question: "No dia seguinte ao nosso primeiro encontro, eu me expressei pra você. Que data foi essa?",
+          answers: ["21/10/2024", "21/10"],
+          inputPlaceholder: "DD/MM/AAAA",
+          hints: [
+            "Foi um dia depois de a gente se ver pela primeira vez.",
+            "Se o primeiro encontro foi dia 20, esse foi o dia seguinte.",
+            "Ainda é outubro de 2024.",
+          ],
+          success: "Tive coragem de falar o que eu sentia. Foi uma das melhores decisões que já tomei.",
+        },
+        {
+          question: "Teve um dia em que a gente deu o primeiro beijo. Quando foi?",
+          answers: ["31/10/2024", "31/10"],
+          inputPlaceholder: "DD/MM/AAAA",
+          hints: [
+            "Foi no mesmo mês em que tudo começou.",
+            "Foi no último dia do mês, e é o dia do Halloween para muita gente.",
+            "Último dia de outubro de 2024.",
+          ],
+          success:
+            "Eu não sabia tudo que a gente viveria depois daquele dia. Mas hoje, olhando para trás, sou muito grato por ele ter acontecido.",
+        },
+      ],
     },
     {
       id: "nosso-jeito",
       number: "03",
       label: "Nosso jeito",
       title: "Uma palavra, tantos significados.",
-      question:
-        "Existem milhares de maneiras de chamar alguém. Mas qual é a palavra que mais usamos um com o outro?",
-      answers: ["amor", "meu amor", "amorzinho"],
-      inputPlaceholder: "Uma palavra",
-      hints: [
-        "Tem quatro letras.",
-        "É o que a gente fala o dia inteiro, de manhã e antes de dormir.",
-        "Começa com A e tem tudo a ver com o motivo desse site.",
-      ],
-      success:
-        "Engraçado como uma palavra tão pequena consegue carregar tanta coisa. Você virou meu amor, minha companhia e minha melhor amiga.",
       word: "MINHA",
+      rounds: [
+        {
+          question:
+            "Existem milhares de maneiras de chamar alguém. Mas qual é a palavra que mais usamos um com o outro?",
+          answers: ["amor", "meu amor", "amorzinho"],
+          inputPlaceholder: "Uma palavra",
+          hints: [
+            "Tem quatro letras.",
+            "É o que a gente fala o dia inteiro, de manhã e antes de dormir.",
+            "Começa com A e tem tudo a ver com o motivo desse site.",
+          ],
+          success: "Uma palavra tão pequena e que diz tanta coisa.",
+        },
+        {
+          question: "Toda história de amor tem uma trilha sonora. Qual é a nossa música?",
+          answers: ["voce e assim", "você é assim"],
+          inputPlaceholder: "Nome da música",
+          hints: [
+            "Ela fala de como a pessoa amada é, do jeito dela.",
+            "O nome começa com Você.",
+            "São três palavras: Você, é, assim.",
+          ],
+          success: "Toda vez que ela toca, eu lembro de você.",
+        },
+        {
+          question: "Agora uma bem de pertinho: que chocolate eu mais gosto?",
+          answers: ["alpino", "o alpino", "chocolate alpino"],
+          inputPlaceholder: "O chocolate",
+          hints: [
+            "É um chocolate de marca conhecida, com leite.",
+            "O nome lembra montanhas.",
+            "Começa com A e termina com O.",
+          ],
+          success:
+            "Engraçado como uma palavra tão pequena consegue carregar tanta coisa. Você virou meu amor, minha companhia e minha melhor amiga.",
+        },
+      ],
     },
     {
       id: "o-centro",
       number: "04",
       label: "O centro",
       title: "Quem escreveu essa história?",
-      question:
-        "Antes de existir um nós, Ele já conhecia nossa história. Quem eu quero que continue sendo o centro dela?",
-      answers: ["jesus", "jesus cristo", "cristo", "deus"],
-      inputPlaceholder: "Escreva o nome",
-      hints: [
-        "É quem a gente mais agradece nas orações.",
-        "O nome tem cinco letras.",
-        "É o nome que está acima de todos os nomes.",
-      ],
-      success:
-        "Minha oração é que Jesus continue sendo o centro da nossa história. Que a gente cresça em amor, paciência e fé, aprendendo todos os dias a cuidar um do outro.",
-      scripture: {
-        ref: "Eclesiastes 4:12",
-        text: "O cordão de três dobras não se rompe com facilidade.",
-      },
       word: "PESSOA",
+      rounds: [
+        {
+          question:
+            "Antes de existir um nós, Ele já conhecia nossa história. Quem eu quero que continue sendo o centro dela?",
+          answers: ["jesus", "jesus cristo", "cristo", "deus"],
+          inputPlaceholder: "Escreva o nome",
+          hints: [
+            "É quem a gente mais agradece nas orações.",
+            "O nome tem cinco letras.",
+            "É o nome que está acima de todos os nomes.",
+          ],
+          success:
+            "Minha oração é que Jesus continue sendo o centro da nossa história. Que a gente cresça em amor, paciência e fé, aprendendo todos os dias a cuidar um do outro.",
+          scripture: {
+            ref: "Eclesiastes 4:12",
+            text: "O cordão de três dobras não se rompe com facilidade.",
+          },
+        },
+        {
+          question: "Todo casal que ora junto se apoia numa promessa. Qual é o nosso versículo? (livro, capítulo e versículo)",
+          answers: ["mateus 18:19", "mateus 18 19", "mt 18:19", "matheus 18:19"],
+          inputPlaceholder: "Livro 00:00",
+          hints: [
+            "Fala sobre dois que concordam na terra.",
+            "É um livro do Novo Testamento, o primeiro deles.",
+            "O capítulo é 18 e o versículo é 19.",
+          ],
+          success: "Quando a gente concorda e ora junto, Ele ouve.",
+          scripture: {
+            ref: "Mateus 18:19",
+            text: "Se dois de vocês concordarem na terra sobre qualquer coisa que pedirem, meu Pai que está nos céus fará por eles.",
+          },
+        },
+      ],
     },
     {
       id: "proximos-capitulos",
       number: "05",
       label: "Os próximos capítulos",
       title: "Eu escolheria de novo.",
-      question:
-        "Se eu pudesse escolher alguém para viver todos os próximos capítulos da minha vida, quem seria?",
-      answers: ["juline", "a juline", "voce", "você", "eu", "a minha juline"],
-      inputPlaceholder: "Um nome",
-      hints: [
-        "Essa pessoa está lendo isso agora.",
-        "Não é difícil: é a pessoa mais importante deste site inteiro.",
-        "É o nome que abre esta página: Para ... com amor.",
-      ],
-      success:
-        "Dois anos foram só o começo. E se eu pudesse voltar no tempo, escolheria viver tudo outra vez com você.",
       word: "FAVORITA",
+      rounds: [
+        {
+          question: "Teve um dia em que fui na sua casa pela primeira vez. Que data foi essa?",
+          answers: ["15/12/2024", "15/12"],
+          inputPlaceholder: "DD/MM/AAAA",
+          hints: [
+            "Foi bem no fim do ano de 2024.",
+            "Foi na metade de dezembro.",
+            "Dia 15 do mês 12.",
+          ],
+          success: "Entrar na sua casa foi entrar um pouquinho mais na sua vida.",
+        },
+        {
+          question: "Teve um dia muito especial, com trilha e uma tarde inteira só nossa. Quando foi?",
+          answers: ["04/03/2025", "04/03", "4/3/2025"],
+          inputPlaceholder: "DD/MM/AAAA",
+          hints: [
+            "Foi em 2025, no começo do ano.",
+            "Foi no mês de março.",
+            "Dia 4 de março.",
+          ],
+          success: "Uma tarde inteira com você já vale mais que muita semana.",
+        },
+        {
+          question: "Passamos o feriado de Páscoa todo juntos. Em que dia ele começou?",
+          answers: ["18/04/2025", "18/04"],
+          inputPlaceholder: "DD/MM/AAAA",
+          hints: [
+            "Foi em abril de 2025.",
+            "Foi numa sexta-feira, a Sexta-feira Santa.",
+            "A data tem dois números: 18 e 04.",
+          ],
+          success: "Nem precisava de programa. Bastava estar junto.",
+        },
+        {
+          question:
+            "Se eu pudesse escolher alguém para viver todos os próximos capítulos da minha vida, quem seria?",
+          answers: ["juline", "a juline", "voce", "você", "eu", "a minha juline"],
+          inputPlaceholder: "Um nome",
+          hints: [
+            "Essa pessoa está lendo isso agora.",
+            "Não é difícil: é a pessoa mais importante deste site inteiro.",
+            "É o nome que abre esta página: Para ... com amor.",
+          ],
+          success:
+            "Dois anos foram só o começo. E se eu pudesse voltar no tempo, escolheria viver tudo outra vez com você.",
+        },
+      ],
     },
   ] satisfies Chapter[],
 
@@ -172,6 +280,7 @@ export const config = {
     verify: "VERIFICAR",
     hint: "Receber uma dica",
     noMoreHints: "Sem mais dicas",
+    nextQuestion: "PRÓXIMA PERGUNTA",
     nextChapter: "PRÓXIMO CAPÍTULO",
     toFinal: "IR PARA O DESAFIO FINAL",
     secretWord: "Palavra secreta",
@@ -237,18 +346,15 @@ export const config = {
       headline: "Girl, I'm so *in love* with *you.*",
     },
 
-    /** Cada item é um parágrafo. Use "" para uma linha em branco. */
+    /** Cada item é um parágrafo (use \n para quebrar linha dentro dele). */
     letter: {
       greeting: "Meu amor,",
       paragraphs: [
-        "Dois anos.",
-        "É engraçado pensar em tudo que aconteceu desde que começamos essa história. Tantas conversas, risadas, sonhos, desafios e momentos que hoje fazem parte de quem nós somos.",
-        "Eu sou muito grato a Deus pela tua vida e por poder caminhar contigo.",
-        "Amo nossas brincadeiras, nossos planos e até os dias mais comuns, porque contigo eles também se tornam especiais.",
-        "Minha oração é que Jesus continue sendo o centro de tudo que estamos construindo.",
-        "Obrigado por estar comigo, por me apoiar e por dividir tua vida comigo.",
-        "Se esses foram nossos primeiros dois anos, eu fico imaginando quantas coisas bonitas ainda temos pela frente.",
-        "Eu te amo, Juline.",
+        "Quão linda e única tu és!\nSua doçura e ousadia me apaixonam.\nQuando estou contigo, a noite brilha\ncomo o sol da manhã.",
+        "Acredito que Van Gogh colocou\nestrelas sobre a vila,\npois ainda não conhecia\nseu sorriso estrelado.",
+        "Amava o amarelo dos girassóis,\njamais olhou para o seu coração radiante.\nCristo é em ti!",
+        "Sinto-me mais feliz que Van Gogh, amo seu sorriso, seu coração doce e ensinável, disposto a amar.",
+        "Meu coração não te ama como Jesus,\nnessa substância carnal não chegaria a tal amor. Mas em paz, sei que o Amor nos amou\ne nos ensina a amar,\ne se Ele nos amou, quero buscar amar a ti também.",
       ],
       closing: "Com amor,",
       signature: "Andreas.",
@@ -269,9 +375,9 @@ export const config = {
      */
     songs: [
       {
-        title: "[CONFIGURAR MÚSICA 1]",
-        artist: "[ARTISTA]",
-        dedication: "[CONFIGURAR DEDICATÓRIA 1] Escreva aqui por que essa música lembra dela.",
+        title: "Você é assim",
+        artist: "[CONFIGURAR ARTISTA]",
+        dedication: "[CONFIGURAR DEDICATÓRIA 1] A nossa música. Escreva aqui o que ela significa pra você.",
         cover: "/music/capa-1.jpg",
         url: "",
         provider: "Spotify",
