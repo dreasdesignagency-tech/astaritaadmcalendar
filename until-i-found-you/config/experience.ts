@@ -385,8 +385,8 @@ export const config = {
         placeholder: true,
       },
       {
-        title: "[CONFIGURAR MÚSICA 2]",
-        artist: "[ARTISTA]",
+        title: "Partilhar",
+        artist: "Rubel",
         dedication: "[CONFIGURAR DEDICATÓRIA 2] Escreva aqui por que essa música lembra dela.",
         cover: "/music/capa-2.jpg",
         url: "https://open.spotify.com/intl-pt/track/3qs9dRNSLaJ5l8pz2o6PdU",
@@ -394,8 +394,8 @@ export const config = {
         placeholder: true,
       },
       {
-        title: "[CONFIGURAR MÚSICA 3]",
-        artist: "[ARTISTA]",
+        title: "Porque Eu Te Amo",
+        artist: "Ana Vitória",
         dedication: "[CONFIGURAR DEDICATÓRIA 3] Escreva aqui por que essa música lembra dela.",
         cover: "/music/capa-3.jpg",
         url: "https://open.spotify.com/intl-pt/track/3idU6lZVKD6hvGjnpSHde8",
