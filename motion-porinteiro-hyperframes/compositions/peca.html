@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        /* Identidade visual: ajuste aqui para bater com a arte original */
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: var(--color-bg);
+          font-family: var(--font-body);
+          color: var(--color-ink);
+          --color-bg: #f8e3e8;
+          --color-bg-2: #fdf3f0;
+          --color-rose: #e48aa5;
+          --color-rose-deep: #b8436a;
+          --color-ink: #4a2236;
+          --color-ink-soft: #6e4a5c;
+          --color-cream: #fff8f5;
+          --font-display: "Fraunces", Georgia, serif;
+          --font-body: "Montserrat", Arial, sans-serif;
+        }
+
+        /* CENA 1 · fundo */
+        .bg {
+          position: absolute;
+          inset: -40px;
+          background:
+            radial-gradient(120% 70% at 85% 0%, var(--color-bg-2) 0%, transparent 60%),
+            radial-gradient(90% 60% at 0% 100%, rgba(228, 138, 165, 0.35) 0%, transparent 70%),
+            var(--color-bg);
+        }
+        .deco {
+          position: absolute;
+          border-radius: 50%;
+        }
+        .deco-top {
+          width: 620px;
+          height: 620px;
+          top: -260px;
+          right: -220px;
+          border: 2px solid rgba(184, 67, 106, 0.22);
+        }
+        .deco-bottom {
+          width: 780px;
+          height: 780px;
+          bottom: -420px;
+          left: -300px;
+          background: rgba(228, 138, 165, 0.18);
+        }
+
+        .content {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 140px 96px 150px;
+        }
+
+        /* CENA 3 · realização */
+        .partners {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          font-size: 28px;
+          font-weight: 600;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: var(--color-ink-soft);
+        }
+        .partners-plus {
+          font-family: var(--font-display);
+          font-size: 40px;
+          font-weight: 400;
+          color: var(--color-rose-deep);
+        }
+
+        /* CENA 2 · título */
+        .title {
+          margin-top: -40px;
+          font-family: var(--font-display);
+          font-weight: 600;
+          font-size: 148px;
+          line-height: 1;
+          letter-spacing: -0.02em;
+        }
+        .title-line {
+          display: block;
+          overflow: hidden;
+          padding-bottom: 0.08em;
+        }
+        .title-text {
+          display: block;
+        }
+        .title-line-italic {
+          font-style: italic;
+          font-weight: 400;
+          color: var(--color-rose-deep);
+        }
+
+        /* CENA 4 · informações */
+        .info {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 22px;
+        }
+        .info-item {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 30px 36px;
+          border-radius: 28px;
+          background: rgba(255, 248, 245, 0.72);
+          border: 1px solid rgba(184, 67, 106, 0.14);
+        }
+        .info-label {
+          font-size: 22px;
+          font-weight: 600;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: var(--color-rose-deep);
+        }
+        .info-value {
+          font-family: var(--font-display);
+          font-size: 54px;
+          line-height: 1.1;
+        }
+
+        /* CENA 5 · proposta */
+        .proposal {
+          display: flex;
+          flex-direction: column;
+          gap: 32px;
+        }
+        .proposal-text {
+          font-family: var(--font-display);
+          font-style: italic;
+          font-size: 66px;
+          line-height: 1.15;
+        }
+        .proposal-line {
+          display: block;
+        }
+        .pillars {
+          display: flex;
+          gap: 16px;
+        }
+        .pillar {
+          display: block;
+          padding: 16px 34px;
+          border-radius: 999px;
+          border: 2px solid var(--color-rose-deep);
+          font-size: 30px;
+          font-weight: 500;
+          letter-spacing: 0.04em;
+          color: var(--color-rose-deep);
+        }
+
+        /* CENA 6 · destaques */
+        .highlights {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+        }
+        .price {
+          display: flex;
+          align-items: baseline;
+          gap: 20px;
+        }
+        .price-label {
+          font-size: 30px;
+          font-weight: 600;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--color-ink-soft);
+        }
+        .price-value {
+          font-family: var(--font-display);
+          font-size: 110px;
+          font-weight: 600;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        .dresscode {
+          padding: 22px 38px;
+          border-radius: 999px;
+          background: var(--color-rose-deep);
+          color: var(--color-cream);
+          font-size: 32px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+
+        /* CENA FINAL · CTA */
+        .cta {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 18px;
+          padding: 34px 40px;
+          border-radius: 999px;
+          background: var(--color-rose-deep);
+          color: var(--color-cream);
+          font-size: 36px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+        }
+      </style>
+
+      <div id="root" data-composition-id="peca" data-width="1080" data-height="1920">
+        <div class="bg" id="bg" data-layout-allow-overflow></div>
+        <div class="deco deco-top" id="deco-top" data-layout-allow-overflow></div>
+        <div class="deco deco-bottom" id="deco-bottom" data-layout-allow-overflow></div>
+
+        <div class="content" id="content">
+          <p class="partners" id="partners">
+            <span>Clínica PorInteiro</span>
+            <span class="partners-plus">+</span>
+            <span>Escolinha Daia Baby</span>
+          </p>
+
+          <h1 class="title">
+            <span class="title-line"
+              ><span class="title-text" id="title-1">Mães e filhos</span></span
+            >
+            <span class="title-line title-line-italic">
+              <span class="title-text" id="title-2">em movimento</span>
+            </span>
+          </h1>
+
+          <div class="info">
+            <div class="info-item">
+              <span class="info-label">data</span>
+              <span class="info-value">24 de outubro</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">dia</span>
+              <span class="info-value">sábado</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">horário</span>
+              <span class="info-value">8h30</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">local</span>
+              <span class="info-value">Poliesportivo</span>
+            </div>
+          </div>
+
+          <div class="proposal">
+            <p class="proposal-text" id="proposal">
+              <span class="proposal-line">uma manhã especial</span>
+              <span class="proposal-line">para mães e filhos</span>
+            </p>
+            <div class="pillars">
+              <span class="pillar">movimento</span>
+              <span class="pillar">autocuidado</span>
+              <span class="pillar">conexão</span>
+            </div>
+          </div>
+
+          <div class="highlights">
+            <p class="price" id="price">
+              <span class="price-label">inscrição</span>
+              <span class="price-value">R$ 30</span>
+            </p>
+            <p class="dresscode" id="dresscode">venha de rosa</p>
+          </div>
+
+          <p class="cta" id="cta">inscreva-se pelo link da bio ↗</p>
+        </div>
+      </div>
+
+      <script>
+        // Início de cada cena (s), alinhado com a narração
+        const T = {
+          title: 0.9,
+          partners: 3.15,
+          info: 7.1,
+          proposal: 11.92,
+          price: 17.04,
+          cta: 20.22,
+          exit: 24.85,
+        };
+        const ease = "expo.out";
+
+        const tl = gsap.timeline({ paused: true });
+
+        // CENA 1 · fundo e elementos visuais
+        tl.fromTo("#bg", { opacity: 0 }, { opacity: 1, duration: 1, ease: "power2.out" }, 0);
+        tl.fromTo("#bg", { scale: 1.06 }, { scale: 1, duration: 22.7, ease: "sine.inOut" }, 0);
+        tl.fromTo(
+          ["#deco-top", "#deco-bottom"],
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 1.1, ease, stagger: 0.15 },
+          0.1,
+        );
+
+        // CENA 2 · título revelado por máscara, linha a linha
+        tl.fromTo(
+          ["#title-1", "#title-2"],
+          { yPercent: 105, opacity: 0 },
+          { yPercent: 0, opacity: 1, duration: 1.1, ease, stagger: 0.22 },
+          T.title,
+        );
+
+        // CENA 3 · realização, discreta
+        tl.fromTo(
+          "#partners",
+          { opacity: 0, y: -12 },
+          { opacity: 1, y: 0, duration: 0.9, ease },
+          T.partners,
+        );
+
+        // CENA 4 · informações em sequência
+        tl.fromTo(
+          ".info-item",
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.8, ease, stagger: 0.18 },
+          T.info,
+        );
+
+        // CENA 5 · proposta e pilares
+        tl.fromTo(
+          "#proposal",
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 1, ease },
+          T.proposal,
+        );
+        tl.fromTo(
+          ".pillar",
+          { opacity: 0, y: 14, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.7, ease, stagger: 0.16 },
+          T.proposal + 0.6,
+        );
+
+        // CENA 6 · inscrição e "venha de rosa"
+        tl.fromTo(
+          "#price",
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.9, ease },
+          T.price,
+        );
+        tl.fromTo(
+          "#dresscode",
+          { opacity: 0, scale: 0.9 },
+          { opacity: 1, scale: 1, duration: 0.9, ease },
+          T.price + 0.35,
+        );
+
+        // CENA FINAL · CTA e composição parada para leitura
+        tl.fromTo("#cta", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.9, ease }, T.cta);
+
+        // Saída curta
+        tl.to(
+          ["#content", "#deco-top", "#deco-bottom"],
+          { opacity: 0, duration: 0.5, ease: "power2.inOut" },
+          T.exit,
+        );
+
+        window.__timelines["peca"] = tl;
+      </script>
+    </template>
+  </body>
+</html>
